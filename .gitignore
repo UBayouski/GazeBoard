@@ -65,3 +65,7 @@ Thumbs.db
 /Assets/GazeBoard/WitConfiguration-*.asset.meta
 /Assets/Resources/DevAgentSettings.asset
 /Assets/Resources/DevAgentSettings.asset.meta
+/ProjectSettings/wit.config
+/ProjectSettings/WitConfigExports/
+/Assets/_Recovery/
+/Assets/_Recovery.meta
