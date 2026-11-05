@@ -29,6 +29,9 @@ namespace GazeBoard
         [SerializeField, Tooltip("Seconds the ring stays full after firing, as visual confirmation.")]
         private float _confirmFlashSeconds = 0.15f;
 
+        [SerializeField, Tooltip("Seconds the gaze may leave the tile without losing dwell progress. Absorbs head-gaze jitter at tile edges.")]
+        private float _graceSeconds = 0.18f;
+
         /// <summary>Raised on any DwellSelectable right after it fires by dwell.</summary>
         public static event Action<DwellSelectable> WhenDwellFired;
 
@@ -40,6 +43,7 @@ namespace GazeBoard
         private Button _button;
         private float _elapsed;
         private float _flashRemaining;
+        private float _graceRemaining;
         private bool _armed = true;
 
         public bool IsHovered => _hoveringPointers.Count > 0;
@@ -49,6 +53,13 @@ namespace GazeBoard
 
         /// <summary>Scales the global dwell time for this tile. Use above 1 for tiles that are costly to hit by accident.</summary>
         public float DwellMultiplier { get; set; } = 1f;
+
+        /// <summary>Keep firing every dwell period while the gaze stays on the tile (delete, scroll).</summary>
+        public bool RepeatWhileHovered
+        {
+            get => _repeatWhileHovered;
+            set => _repeatWhileHovered = value;
+        }
 
         /// <summary>
         /// If true this tile dwells even when DwellSettings.Enabled is false. Used by the tile that
@@ -78,6 +89,7 @@ namespace GazeBoard
         public void OnPointerEnter(PointerEventData eventData)
         {
             _hoveringPointers.Add(eventData.pointerId);
+            _graceRemaining = 0f;
         }
 
         public void OnPointerExit(PointerEventData eventData)
@@ -85,8 +97,9 @@ namespace GazeBoard
             _hoveringPointers.Remove(eventData.pointerId);
             if (_hoveringPointers.Count == 0)
             {
-                ResetDwell();
-                _armed = true;
+                // Keep the progress for a moment: a gaze that clips the tile edge comes straight back.
+                if (_elapsed > 0f && _graceSeconds > 0f) _graceRemaining = _graceSeconds;
+                else { ResetDwell(); _armed = true; }
             }
         }
 
@@ -105,6 +118,13 @@ namespace GazeBoard
                 _flashRemaining -= Time.unscaledDeltaTime;
                 if (_flashRemaining <= 0f) SetRing(0f);
                 return;
+            }
+
+            if (!IsHovered && _graceRemaining > 0f)
+            {
+                _graceRemaining -= Time.unscaledDeltaTime;
+                if (_graceRemaining <= 0f) { ResetDwell(); _armed = true; }
+                return; // progress is held, not advanced
             }
 
             if ((!DwellSettings.Enabled && !AlwaysDwell) || !_armed || !IsHovered || !IsInteractable())
@@ -153,6 +173,7 @@ namespace GazeBoard
         {
             _elapsed = 0f;
             _flashRemaining = 0f;
+            _graceRemaining = 0f;
             SetRing(0f);
         }
 

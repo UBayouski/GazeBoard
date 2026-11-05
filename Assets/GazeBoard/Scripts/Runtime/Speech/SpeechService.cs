@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 
 namespace GazeBoard.Speech
@@ -16,6 +17,8 @@ namespace GazeBoard.Speech
         private static SpeechService _instance;
         private ISpeechSynthesizer _synth;
         private float _rate = 1f;
+        private string _lastSpoken;
+        private bool _lastWasUserText;
 
         /// <summary>Raised on the Unity thread for every phrase handed to the engine.</summary>
         public static event Action<string> WhenSpoken;
@@ -37,6 +40,9 @@ namespace GazeBoard.Speech
         public static bool IsReady => _instance != null && _instance._synth != null && _instance._synth.IsReady;
         public static bool IsSpeaking => _instance != null && _instance._synth != null && _instance._synth.IsSpeaking;
 
+        /// <summary>The last text handed to the engine, for the Repeat tile. Null before anything was spoken.</summary>
+        public static string LastSpoken => _instance != null ? _instance._lastSpoken : null;
+
         /// <summary>Speech rate multiplier, persisted. 1 is normal.</summary>
         public static float Rate
         {
@@ -51,48 +57,50 @@ namespace GazeBoard.Speech
             }
         }
 
-        /// <summary>Speak text, interrupting anything already playing unless interrupt is false.</summary>
-        public static void Speak(string text, bool interrupt = true)
+        /// <summary>
+        /// Speak text, interrupting anything already playing unless interrupt is false.
+        /// userText marks sentences the user composed (not baked into the APK), so the backend can
+        /// cache them on the device after the first play.
+        /// </summary>
+        public static void Speak(string text, bool interrupt = true, bool userText = false)
         {
             if (string.IsNullOrWhiteSpace(text)) return;
             var synth = Instance._synth;
             Debug.Log($"[GazeBoard.Speech] Speak(\"{text}\") via {(synth != null ? synth.GetType().Name : "no backend")}, ready={synth?.IsReady}");
-            if (DebugBeep) Instance.PlayDebugBeep();
-            synth?.Speak(text, interrupt);
+            Instance._lastSpoken = text;
+            Instance._lastWasUserText = userText;
+            synth?.Speak(text, interrupt, userText);
             WhenSpoken?.Invoke(text);
         }
 
-        // ---- Bring-up diagnostic: a plain generated tone through a plain AudioSource. ----
-        // If this is audible on the headset but the voice is not, the problem is the Wit clip.
-        // If neither is audible, Unity audio output itself is not reaching the speakers.
-        private static readonly bool DebugBeep = false;
-        private AudioSource _beepSource;
-        private AudioClip _beepClip;
-
-        private void PlayDebugBeep()
+        /// <summary>Speaks the last text again. Returns false when nothing has been spoken yet.</summary>
+        public static bool RepeatLast()
         {
-            if (_beepClip == null)
-            {
-                const int sampleRate = 48000;
-                const float seconds = 0.15f;
-                const float frequency = 660f;
-                int count = (int)(sampleRate * seconds);
-                var samples = new float[count];
-                for (int i = 0; i < count; i++)
-                {
-                    float envelope = Mathf.Min(1f, Mathf.Min(i, count - i) / (sampleRate * 0.01f));
-                    samples[i] = Mathf.Sin(2f * Mathf.PI * frequency * i / sampleRate) * 0.4f * envelope;
-                }
-                _beepClip = AudioClip.Create("DebugBeep", count, 1, sampleRate, false);
-                _beepClip.SetData(samples, 0);
+            string last = LastSpoken;
+            if (string.IsNullOrEmpty(last)) return false;
+            Speak(last, true, Instance._lastWasUserText);
+            return true;
+        }
 
-                _beepSource = gameObject.AddComponent<AudioSource>();
-                _beepSource.playOnAwake = false;
-                _beepSource.spatialBlend = 0f;
-                _beepSource.volume = 1f;
-            }
-            _beepSource.PlayOneShot(_beepClip);
-            Debug.Log("[GazeBoard.Speech] Debug beep played.");
+        /// <summary>True while a help alert is repeating.</summary>
+        public static bool IsAlerting => _instance != null && _instance._alert != null;
+
+        /// <summary>
+        /// Attention alert: a two-tone chime, then the text, repeated every interval until
+        /// StopAlert is called or the repeat limit is reached. For calling someone in another room.
+        /// </summary>
+        public static void StartAlert(string text, float intervalSeconds = 8f, int repeats = 10)
+        {
+            StopAlert();
+            Stop();
+            Instance._alert = Instance.StartCoroutine(Instance.AlertLoop(text, intervalSeconds, repeats));
+        }
+
+        public static void StopAlert()
+        {
+            if (_instance == null || _instance._alert == null) return;
+            _instance.StopCoroutine(_instance._alert);
+            _instance._alert = null;
         }
 
         public static void Stop() => _instance?._synth?.Stop();
@@ -135,6 +143,57 @@ namespace GazeBoard.Speech
 #endif
         }
 
+        // ---- Attention chime: a generated two-tone through a plain AudioSource. ----
+
+        private AudioSource _toneSource;
+        private AudioClip _chimeClip;
+        private Coroutine _alert;
+
+        private IEnumerator AlertLoop(string text, float intervalSeconds, int repeats)
+        {
+            for (int i = 0; i < repeats; i++)
+            {
+                PlayChime();
+                yield return new WaitForSecondsRealtime(0.75f);
+                Speak(text);
+                yield return new WaitForSecondsRealtime(intervalSeconds);
+            }
+            _alert = null;
+        }
+
+        private void PlayChime()
+        {
+            // Rebuilt every time: AudioSettings.Reset (used after focus gain) invalidates runtime clips.
+            if (_chimeClip != null) Destroy(_chimeClip);
+            {
+                const int sampleRate = 48000;
+                float[] notes = { 659.25f, 880f }; // E5, A5
+                const float noteSeconds = 0.22f;
+                int perNote = (int)(sampleRate * noteSeconds);
+                var samples = new float[perNote * notes.Length];
+                for (int n = 0; n < notes.Length; n++)
+                {
+                    for (int i = 0; i < perNote; i++)
+                    {
+                        float attack = Mathf.Min(1f, i / (sampleRate * 0.01f));
+                        float release = Mathf.Min(1f, (perNote - i) / (sampleRate * 0.08f));
+                        float t = (float)i / sampleRate;
+                        samples[n * perNote + i] = Mathf.Sin(2f * Mathf.PI * notes[n] * t) * 0.45f * attack * release;
+                    }
+                }
+                _chimeClip = AudioClip.Create("AttentionChime", samples.Length, 1, sampleRate, false);
+                _chimeClip.SetData(samples, 0);
+            }
+            if (_toneSource == null)
+            {
+                _toneSource = gameObject.AddComponent<AudioSource>();
+                _toneSource.playOnAwake = false;
+                _toneSource.spatialBlend = 0f;
+                _toneSource.volume = 1f;
+            }
+            _toneSource.PlayOneShot(_chimeClip);
+        }
+
 #if UNITY_ANDROID && !UNITY_EDITOR
         private Coroutine _audioRefresh;
 
@@ -153,7 +212,7 @@ namespace GazeBoard.Speech
             _audioRefresh = StartCoroutine(RefreshAudioOutput());
         }
 
-        private System.Collections.IEnumerator RefreshAudioOutput()
+        private IEnumerator RefreshAudioOutput()
         {
             // Several attempts: when the app was launched while the headset lay on the desk, the
             // OS may grant audio only some seconds after the user puts it on.

@@ -16,6 +16,18 @@ namespace GazeBoard.Board
         public string Text => _text.ToString();
         public bool IsEmpty => _text.Length == 0;
 
+        /// <summary>The word being spelled: the characters after the last space, or empty after a space.</summary>
+        public string CurrentWord
+        {
+            get
+            {
+                if (_text.Length == 0 || _text[_text.Length - 1] == ' ') return "";
+                string text = Text;
+                int start = text.LastIndexOf(' ') + 1;
+                return text.Substring(start);
+            }
+        }
+
         public void AppendPhrase(string phrase)
         {
             if (string.IsNullOrWhiteSpace(phrase)) return;
@@ -30,6 +42,23 @@ namespace GazeBoard.Board
             // Collapse double spaces so Space tiles are forgiving.
             if (s == " " && (_text.Length == 0 || _text[_text.Length - 1] == ' ')) return;
             _text.Append(s);
+            Notify();
+        }
+
+        /// <summary>Replaces the word being spelled with a completed word and a trailing space.</summary>
+        public void ReplaceCurrentWord(string word)
+        {
+            if (string.IsNullOrWhiteSpace(word)) return;
+            _text.Length -= CurrentWord.Length;
+            _text.Append(word.Trim()).Append(' ');
+            Notify();
+        }
+
+        /// <summary>Removes the last character, whatever it is.</summary>
+        public void DeleteLastChar()
+        {
+            if (_text.Length == 0) return;
+            _text.Length--;
             Notify();
         }
 

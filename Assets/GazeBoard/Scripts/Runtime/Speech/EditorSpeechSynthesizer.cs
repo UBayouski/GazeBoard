@@ -19,7 +19,7 @@ namespace GazeBoard.Speech
         public bool IsReady => true;
         public bool IsSpeaking => _process != null && !_process.HasExited;
 
-        public void Speak(string text, bool interrupt = true)
+        public void Speak(string text, bool interrupt = true, bool userText = false)
         {
             if (string.IsNullOrWhiteSpace(text)) return;
             Debug.Log($"{Tag} Speak: \"{text}\"");

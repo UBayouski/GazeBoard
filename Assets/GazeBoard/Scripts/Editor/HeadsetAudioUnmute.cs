@@ -68,15 +68,28 @@ namespace GazeBoard.EditorTools
             string component = ResolveLauncherActivity(adb, package);
             if (string.IsNullOrEmpty(component)) return $"could not resolve the launcher activity of {package}";
 
-            // Already started the right way (e.g. from the Library)? Then leave it alone.
+            // An app launched while the headset is off (asleep) is muted whatever the intent, and
+            // putting the headset on does not unmute it. So wait until it is worn before relaunching.
+            if (!IsAwake(adb))
+            {
+                Debug.Log("[GazeBoard] Headset is off; the app will be relaunched with audio as soon as it is put on.");
+                for (int i = 0; i < 300 && !IsAwake(adb); i++) Thread.Sleep(2000);
+                if (!IsAwake(adb)) return "headset was not put on within 10 minutes; use GazeBoard > Headset: Relaunch App when it is.";
+                Thread.Sleep(2000);
+            }
+
+            // Already started the right way (e.g. from the Library) and audible? Then leave it alone.
             string tasks = Run(adb, "shell dumpsys activity activities");
+            bool vrLaunched = false;
             foreach (string line in tasks.Split('\n'))
             {
                 // e.g. "Intent { act=android.intent.action.MAIN cat=[...,com.oculus.intent.category.VR] ... cmp=<package>/... }"
-                if (line.Contains("Intent {") && line.Contains("cmp=" + package + "/") && line.Contains(VrCategory))
-                {
-                    return "app was already launched as a VR app; no relaunch needed.";
-                }
+                if (line.Contains("Intent {") && line.Contains("cmp=" + package + "/") && line.Contains(VrCategory)) vrLaunched = true;
+            }
+            string current = Run(adb, $"shell appops get {package} PLAY_AUDIO");
+            if (vrLaunched && !current.Contains("ignore"))
+            {
+                return "app was already launched as a VR app with audio allowed; no relaunch needed.";
             }
 
             Run(adb, $"shell am force-stop {package}");
@@ -93,6 +106,12 @@ namespace GazeBoard.EditorTools
                 if (op.Contains("ignore")) Run(adb, $"shell appops set {package} PLAY_AUDIO allow");
             }
             return $"relaunched {component} as a VR app. {start.Trim()} | PLAY_AUDIO after 45 s: {op}";
+        }
+
+        /// <summary>True while the headset is worn: the proximity sensor keeps the device awake.</summary>
+        private static bool IsAwake(string adb)
+        {
+            return Run(adb, "shell dumpsys power").Contains("mWakefulness=Awake");
         }
 
         private static string ResolveLauncherActivity(string adb, string package)

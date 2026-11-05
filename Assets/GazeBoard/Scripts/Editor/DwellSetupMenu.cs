@@ -74,15 +74,18 @@ namespace GazeBoard.EditorTools
             ringGo.transform.SetParent(parent, false);
             ringGo.transform.SetAsLastSibling();
 
+            // Inset a little so the ring sits inside the tile instead of touching its edges.
             var rect = ringGo.GetComponent<RectTransform>();
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
+            rect.anchorMin = new Vector2(0.06f, 0.06f);
+            rect.anchorMax = new Vector2(0.94f, 0.94f);
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
 
-            // A translucent circle that fills clockwise as the dwell progresses.
+            // A ring stroke that fills clockwise as the dwell progresses; a solid circle before
+            // the generated ring sprite exists.
             var image = ringGo.GetComponent<Image>();
-            image.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
+            image.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(UiAssetFactory.RingPath)
+                           ?? AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
             image.type = Image.Type.Filled;
             image.fillMethod = Image.FillMethod.Radial360;
             image.fillOrigin = (int)Image.Origin360.Top;

@@ -12,7 +12,7 @@ namespace GazeBoard.Speech
         bool IsSpeaking { get; }
 
         /// <summary>Speak the text. When interrupt is true, anything queued or playing is dropped first.</summary>
-        void Speak(string text, bool interrupt = true);
+        void Speak(string text, bool interrupt = true, bool userText = false);
 
         /// <summary>Stop any current or queued speech.</summary>
         void Stop();

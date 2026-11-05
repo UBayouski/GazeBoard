@@ -32,8 +32,20 @@ MonoBehaviour:
         textToSpeak: Call someone
         downloaded: 1
         downloadProgress: 0
+      - clipID: tts_p997066626
+        textToSpeak: Calm theme
+        downloaded: 1
+        downloadProgress: 0
+      - clipID: tts_n757602604
+        textToSpeak: Choose a phrase to remove
+        downloaded: 1
+        downloadProgress: 0
       - clipID: tts_p1578924034
         textToSpeak: Come here
+        downloaded: 1
+        downloadProgress: 0
+      - clipID: tts_n1246753926
+        textToSpeak: Could not reach your phone. Check the internet connection.
         downloaded: 1
         downloadProgress: 0
       - clipID: tts_n348148237
@@ -42,6 +54,10 @@ MonoBehaviour:
         downloadProgress: 0
       - clipID: tts_p380849035
         textToSpeak: Doctor
+        downloaded: 1
+        downloadProgress: 0
+      - clipID: tts_p1880332908
+        textToSpeak: Done editing
         downloaded: 1
         downloadProgress: 0
       - clipID: tts_p927551401
@@ -120,12 +136,20 @@ MonoBehaviour:
         textToSpeak: Gaze select on
         downloaded: 1
         downloadProgress: 0
+      - clipID: tts_n870178709
+        textToSpeak: Goodbye
+        downloaded: 1
+        downloadProgress: 0
+      - clipID: tts_n411081728
+        textToSpeak: Hello
+        downloaded: 1
+        downloadProgress: 0
       - clipID: tts_p502668983
         textToSpeak: Hello, I am your Gaze Board voice.
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p1452906723
-        textToSpeak: Help
+      - clipID: tts_n703818781
+        textToSpeak: High contrast theme
         downloaded: 1
         downloadProgress: 0
       - clipID: tts_p508386076
@@ -138,6 +162,14 @@ MonoBehaviour:
         downloadProgress: 0
       - clipID: tts_n1291779146
         textToSpeak: I love you
+        downloaded: 1
+        downloadProgress: 0
+      - clipID: tts_p1019404923
+        textToSpeak: I need a break
+        downloaded: 1
+        downloadProgress: 0
+      - clipID: tts_p888023952
+        textToSpeak: I need help. Please come here.
         downloaded: 1
         downloadProgress: 0
       - clipID: tts_n1855616426
@@ -240,8 +272,24 @@ MonoBehaviour:
         textToSpeak: Nobody
         downloaded: 1
         downloadProgress: 0
+      - clipID: tts_n1433754913
+        textToSpeak: Nothing to repeat yet
+        downloaded: 1
+        downloadProgress: 0
+      - clipID: tts_p175759629
+        textToSpeak: Nothing to save yet
+        downloaded: 1
+        downloadProgress: 0
       - clipID: tts_p1932493501
         textToSpeak: Nurse
+        downloaded: 1
+        downloadProgress: 0
+      - clipID: tts_n1776624334
+        textToSpeak: Phone alerts off
+        downloaded: 1
+        downloadProgress: 0
+      - clipID: tts_n886162032
+        textToSpeak: Phone alerts on
         downloaded: 1
         downloadProgress: 0
       - clipID: tts_n1946690690
@@ -252,8 +300,28 @@ MonoBehaviour:
         textToSpeak: Please move me
         downloaded: 1
         downloadProgress: 0
+      - clipID: tts_n1569734300
+        textToSpeak: Removed
+        downloaded: 1
+        downloadProgress: 0
+      - clipID: tts_p1229886036
+        textToSpeak: Saved to my phrases
+        downloaded: 1
+        downloadProgress: 0
+      - clipID: tts_p1215229258
+        textToSpeak: Showing the calm room
+        downloaded: 1
+        downloadProgress: 0
+      - clipID: tts_p1444481839
+        textToSpeak: Showing your room
+        downloaded: 1
+        downloadProgress: 0
       - clipID: tts_p1936492128
         textToSpeak: Stop
+        downloaded: 1
+        downloadProgress: 0
+      - clipID: tts_n504955487
+        textToSpeak: Test message sent to your phone
         downloaded: 1
         downloadProgress: 0
       - clipID: tts_p459967193
@@ -266,6 +334,10 @@ MonoBehaviour:
         downloadProgress: 0
       - clipID: tts_n1461222195
         textToSpeak: Wait
+        downloaded: 1
+        downloadProgress: 0
+      - clipID: tts_p1403865288
+        textToSpeak: Warm theme
         downloaded: 1
         downloadProgress: 0
       - clipID: tts_n429378678

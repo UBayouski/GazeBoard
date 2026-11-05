@@ -1,3 +1,4 @@
+using Meta.WitAi.TTS.Integrations;
 using Meta.WitAi.TTS.Utilities;
 using UnityEngine;
 
@@ -11,6 +12,10 @@ namespace GazeBoard.Speech
     {
         private const string Tag = "[GazeBoard.Speech]";
         private readonly TTSSpeaker _speaker;
+
+        // Speed override in effect, or null at the preset's own speed. Baked clips exist only at
+        // the preset speed, so offline we fall back to it.
+        private TTSWitVoiceSettings _override;
 
         public WitSpeechSynthesizer(TTSSpeaker speaker)
         {
@@ -37,7 +42,7 @@ namespace GazeBoard.Speech
         public bool IsReady => _speaker != null && _speaker.TTSService != null;
         public bool IsSpeaking => _speaker != null && _speaker.IsActive;
 
-        public void Speak(string text, bool interrupt = true)
+        public void Speak(string text, bool interrupt = true, bool userText = false)
         {
             if (string.IsNullOrWhiteSpace(text)) return;
             if (!IsReady)
@@ -45,15 +50,30 @@ namespace GazeBoard.Speech
                 Debug.LogError($"{Tag} Wit speaker has no TTSService; cannot speak \"{text}\"");
                 return;
             }
-            Debug.Log($"{Tag} Wit speak request: \"{text}\" (interrupt={interrupt})");
-            // Preload: play from the clips baked into the APK when present (offline), otherwise the
-            // SDK streams from Wit.ai. See GazeBoard > Preload Board Phrases.
-            if (interrupt) _speaker.Speak(text, PreloadCache);
-            else _speaker.SpeakQueued(text, PreloadCache);
+
+            // Board phrases: play from the clips baked into the APK (offline), otherwise stream.
+            // User sentences: stream once, then keep the clip in persistent storage for offline replay.
+            var cache = userText ? PersistentCache : PreloadCache;
+
+            // The baked clips were made at the preset's speed. Offline, a speed override would make
+            // every clip id miss and the phrase would fail silently, so speak at the preset speed.
+            bool offline = Application.internetReachability == NetworkReachability.NotReachable;
+            bool dropOverride = offline && _override != null;
+            if (dropOverride) _speaker.ClearVoiceOverride();
+
+            Debug.Log($"{Tag} Wit speak request: \"{text}\" (interrupt={interrupt}, userText={userText}" +
+                      $"{(dropOverride ? ", offline: preset speed" : "")})");
+            if (interrupt) _speaker.Speak(text, cache);
+            else _speaker.SpeakQueued(text, cache);
+
+            if (dropOverride) _speaker.SetVoiceOverride(_override);
         }
 
         private static readonly Meta.WitAi.TTS.Data.TTSDiskCacheSettings PreloadCache =
             new Meta.WitAi.TTS.Data.TTSDiskCacheSettings { DiskCacheLocation = Meta.WitAi.TTS.Data.TTSDiskCacheLocation.Preload };
+
+        private static readonly Meta.WitAi.TTS.Data.TTSDiskCacheSettings PersistentCache =
+            new Meta.WitAi.TTS.Data.TTSDiskCacheSettings { DiskCacheLocation = Meta.WitAi.TTS.Data.TTSDiskCacheLocation.Persistent };
 
         public void Stop()
         {
@@ -65,25 +85,38 @@ namespace GazeBoard.Speech
             if (_speaker == null) return;
             int speed = Mathf.RoundToInt(Mathf.Clamp(rate, 0.5f, 2f) * 100f); // Wit speed is a percentage, 50 to 200
 
-            // The speaker normally uses a preset voice; override it with a copy that carries the new speed.
-            if (_speaker.VoiceSettings is Meta.WitAi.TTS.Integrations.TTSWitVoiceSettings current)
+            // The preset is the voice the clips were baked with. Any other speed is an override
+            // built from a copy of it; back at the preset speed the override is cleared so the
+            // clip ids match the baked files again.
+            var preset = _speaker.TTSService != null && !string.IsNullOrEmpty(_speaker.VoiceID)
+                ? _speaker.TTSService.GetPresetVoiceSettings(_speaker.VoiceID) as TTSWitVoiceSettings
+                : null;
+
+            if (preset == null)
             {
-                if (current.speed == speed) return;
-                _speaker.SetVoiceOverride(new Meta.WitAi.TTS.Integrations.TTSWitVoiceSettings
-                {
-                    SettingsId = current.SettingsId + "@" + speed,
-                    PrependedText = current.PrependedText,
-                    AppendedText = current.AppendedText,
-                    voice = current.voice,
-                    style = current.style,
-                    pitch = current.pitch,
-                    speed = speed,
-                });
+                if (_speaker.customWitVoiceSettings != null) _speaker.customWitVoiceSettings.speed = speed;
+                return;
             }
-            else if (_speaker.customWitVoiceSettings != null)
+
+            if (speed == preset.speed)
             {
-                _speaker.customWitVoiceSettings.speed = speed;
+                _speaker.ClearVoiceOverride();
+                _override = null;
+                return;
             }
+            if (_override != null && _override.speed == speed) return;
+
+            _override = new TTSWitVoiceSettings
+            {
+                SettingsId = preset.SettingsId + "@" + speed,
+                PrependedText = preset.PrependedText,
+                AppendedText = preset.AppendedText,
+                voice = preset.voice,
+                style = preset.style,
+                pitch = preset.pitch,
+                speed = speed,
+            };
+            _speaker.SetVoiceOverride(_override);
         }
 
         public void Tick() { }

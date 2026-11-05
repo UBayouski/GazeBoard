@@ -3,6 +3,7 @@ using GazeBoard.Environment;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace GazeBoard.EditorTools
 {
@@ -121,8 +122,12 @@ namespace GazeBoard.EditorTools
 
         private static GameObject BuildRoom()
         {
-            GameObject old = GameObject.Find(RoomRootName);
-            if (old != null) Undo.DestroyObjectImmediate(old);
+            // GameObject.Find skips inactive objects and the room is inactive by default, so look
+            // through every root object instead; otherwise each run would leave a duplicate room.
+            foreach (GameObject rootObject in SceneManager.GetActiveScene().GetRootGameObjects())
+            {
+                if (rootObject.name == RoomRootName) Undo.DestroyObjectImmediate(rootObject);
+            }
 
             var root = new GameObject(RoomRootName);
             Undo.RegisterCreatedObjectUndo(root, "Create calm room");

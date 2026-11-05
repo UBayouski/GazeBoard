@@ -13,257 +13,357 @@ MonoBehaviour:
   m_Name: DefaultBoard
   m_EditorClassIdentifier: Assembly-CSharp::GazeBoard.Board.BoardDefinition
   categories:
+  - name: Mine
+    icon: star
+    role: 5
+    columns: 4
+    rows: 3
+    tiles: []
+    isSettings: 0
   - name: Quick
+    icon: zap
+    role: 0
     columns: 4
     rows: 3
     tiles:
-    - label: Yes
+    - label: Hello
       text: 
+      icon: hand
       kind: 0
-    - label: No
+    - label: Goodbye
       text: 
+      icon: door-open
       kind: 0
     - label: Maybe
       text: 
-      kind: 0
-    - label: Help
-      text: 
+      icon: circle-help
       kind: 0
     - label: Thank you
       text: 
+      icon: heart-handshake
       kind: 0
     - label: Please
       text: 
+      icon: hand-heart
       kind: 0
     - label: Stop
       text: 
+      icon: ban
       kind: 0
     - label: Wait
       text: 
+      icon: hourglass
       kind: 0
     - label: I don't know
       text: 
+      icon: message-circle-question
       kind: 0
     - label: More
       text: 
+      icon: plus
       kind: 0
     - label: Again
       text: 
+      icon: repeat
       kind: 0
     - label: I'm done
       text: 
+      icon: check-check
       kind: 0
+    - label: I need a break
+      text: 
+      icon: pause
+      kind: 0
+    isSettings: 0
   - name: Needs
+    icon: hand-helping
+    role: 1
     columns: 4
     rows: 3
     tiles:
     - label: I need water
       text: 
+      icon: glass-water
       kind: 0
     - label: I'm hungry
       text: 
+      icon: utensils
       kind: 0
     - label: I'm in pain
       text: 
+      icon: heart-pulse
       kind: 0
     - label: Bathroom
       text: 
+      icon: bath
       kind: 0
     - label: I'm tired
       text: 
+      icon: bed
       kind: 0
     - label: I'm cold
       text: 
+      icon: snowflake
       kind: 0
     - label: I'm hot
       text: 
+      icon: flame
       kind: 0
     - label: Medicine
       text: 
+      icon: pill
       kind: 0
     - label: Call someone
       text: 
+      icon: phone
       kind: 0
     - label: I'm uncomfortable
       text: 
+      icon: frown
       kind: 0
     - label: Please move me
       text: 
+      icon: move
       kind: 0
     - label: Blanket
       text: 
+      icon: layers
       kind: 0
+    isSettings: 0
   - name: Feelings
+    icon: smile
+    role: 2
     columns: 4
     rows: 3
     tiles:
     - label: I'm happy
       text: 
+      icon: smile
       kind: 0
     - label: I'm sad
       text: 
+      icon: frown
       kind: 0
     - label: I'm scared
       text: 
+      icon: ghost
       kind: 0
     - label: I'm angry
       text: 
+      icon: angry
       kind: 0
     - label: I'm okay
       text: 
+      icon: thumbs-up
       kind: 0
     - label: I'm bored
       text: 
+      icon: meh
       kind: 0
     - label: I'm excited
       text: 
+      icon: party-popper
       kind: 0
     - label: I'm lonely
       text: 
+      icon: user
       kind: 0
     - label: I'm frustrated
       text: 
+      icon: cloud-lightning
       kind: 0
     - label: I'm calm
       text: 
+      icon: leaf
       kind: 0
     - label: I feel sick
       text: 
+      icon: thermometer
       kind: 0
     - label: I love you
       text: 
+      icon: heart
       kind: 0
+    isSettings: 0
   - name: People
+    icon: users
+    role: 3
     columns: 4
     rows: 3
     tiles:
     - label: Mom
       text: 
+      icon: user-round
       kind: 0
     - label: Dad
       text: 
+      icon: user
       kind: 0
     - label: Nurse
       text: 
+      icon: cross
       kind: 0
     - label: Doctor
       text: 
+      icon: stethoscope
       kind: 0
     - label: Friend
       text: 
+      icon: users
       kind: 0
     - label: Family
       text: 
+      icon: house
       kind: 0
     - label: Me
       text: 
+      icon: person-standing
       kind: 0
     - label: You
       text: 
+      icon: hand
       kind: 0
     - label: Everyone
       text: 
+      icon: users-round
       kind: 0
     - label: Nobody
       text: 
+      icon: user-x
       kind: 0
     - label: Who is it?
       text: 
+      icon: circle-help
       kind: 0
     - label: Come here
       text: 
+      icon: hand
       kind: 0
+    isSettings: 0
   - name: Spell
+    icon: keyboard
+    role: 4
     columns: 6
     rows: 5
     tiles:
     - label: A
       text: a
+      icon: 
       kind: 1
     - label: B
       text: b
+      icon: 
       kind: 1
     - label: C
       text: c
+      icon: 
       kind: 1
     - label: D
       text: d
+      icon: 
       kind: 1
     - label: E
       text: e
+      icon: 
       kind: 1
     - label: F
       text: f
+      icon: 
       kind: 1
     - label: G
       text: g
+      icon: 
       kind: 1
     - label: H
       text: h
+      icon: 
       kind: 1
     - label: I
       text: i
+      icon: 
       kind: 1
     - label: J
       text: j
+      icon: 
       kind: 1
     - label: K
       text: k
+      icon: 
       kind: 1
     - label: L
       text: l
+      icon: 
       kind: 1
     - label: M
       text: m
+      icon: 
       kind: 1
     - label: N
       text: n
+      icon: 
       kind: 1
     - label: O
       text: o
+      icon: 
       kind: 1
     - label: P
       text: p
+      icon: 
       kind: 1
     - label: Q
       text: q
+      icon: 
       kind: 1
     - label: R
       text: r
+      icon: 
       kind: 1
     - label: S
       text: s
+      icon: 
       kind: 1
     - label: T
       text: t
+      icon: 
       kind: 1
     - label: U
       text: u
+      icon: 
       kind: 1
     - label: V
       text: v
+      icon: 
       kind: 1
     - label: W
       text: w
+      icon: 
       kind: 1
     - label: X
       text: x
+      icon: 
       kind: 1
     - label: Y
       text: y
+      icon: 
       kind: 1
     - label: Z
       text: z
+      icon: 
       kind: 1
     - label: Space
       text: ' '
+      icon: space
       kind: 5
     - label: '?'
       text: '?'
+      icon: 
       kind: 1
     - label: .
       text: .
+      icon: 
       kind: 1
-    - label: Speak
+    - label: Delete
       text: 
-      kind: 2
+      icon: delete
+      kind: 23
+    isSettings: 0

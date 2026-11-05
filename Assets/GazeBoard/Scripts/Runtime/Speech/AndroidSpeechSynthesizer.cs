@@ -95,7 +95,7 @@ namespace GazeBoard.Speech
             WhenInitialised?.Invoke(true);
         }
 
-        public void Speak(string text, bool interrupt = true)
+        public void Speak(string text, bool interrupt = true, bool userText = false)
         {
             if (string.IsNullOrWhiteSpace(text)) return;
             if (!IsReady)

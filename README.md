@@ -46,10 +46,41 @@ File > Build Profiles > Android > Build And Run. APKs go to `Builds/` (ignored).
 Note: Horizon OS mutes an app that is started with a bare component intent, which is how Unity's
 Build And Run launches it over adb (the PLAY_AUDIO app-op flips to "ignore"). Launching with the
 LAUNCHER and `com.oculus.intent.category.VR` categories, as the Library does, keeps audio on.
-A post-build hook in `HeadsetAudioUnmute.cs` waits for Unity's launch and then restarts the app that
-way. If it is ever silent, run **GazeBoard > Headset: Relaunch App** or start it from
-**Library > Unknown Sources**. Store installs are not affected. Manual equivalent:
+An app launched while the headset is off (asleep) is muted too, whichever intent is used, and
+putting the headset on does not unmute it. A post-build hook in `HeadsetAudioUnmute.cs` waits for
+Unity's launch and for the headset to be worn, then restarts the app the right way. If it is ever
+silent, put the headset on and run **GazeBoard > Headset: Relaunch App**, or start it from
+**Library > Unknown Sources** while wearing it. Store installs are not affected. Manual equivalent:
 
 ```
 adb shell am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -c com.oculus.intent.category.VR -n com.ubayouski.gazeboard/com.unity3d.player.UnityPlayerGameActivity
 ```
+
+## Board features
+
+- Categories down the left (Mine, Quick, Needs, Feelings, People, Spell), each with its own colour.
+- Fixed quick row: **Yes**, **No**, **Help** (attention chime, then "I need help"), **Repeat**, **Save**.
+- **Spell** shows three predicted words above the letters; words you have spoken rank first.
+- **Save** turns the sentence into a tile under **Mine**, together with your recent sentences.
+- Settings (gear in the sentence bar): dwell time, gaze on/off, voice speed, theme, passthrough or calm room.
+
+Setup in a fresh clone: **GazeBoard > Setup Board (assets + definition + UI)** generates the sprites
+and font assets, writes the default board, and rebuilds the board UI in the open scene.
+
+## Phone alerts (optional)
+
+Everything the user says, and every Help call, can be forwarded to a caregiver's phone through
+[ntfy](https://ntfy.sh), a free notification service. No account is needed on either side.
+
+1. On the phone, install the ntfy app (Android or iOS) and subscribe to the topic
+   `gazeboard-` followed by the code shown on the second Settings page (the Code tile reads it aloud).
+2. On the headset, turn **Phone** on in Settings and choose **Test phone**. The phone gets a message.
+
+Help calls arrive as urgent notifications. The headset needs internet for this; the chime and the
+voice work without it. Messages pass through ntfy.sh unencrypted, so keep the code private.
+
+## Credits
+
+- [Atkinson Hyperlegible](https://www.brailleinstitute.org/freefont) by Braille Institute, SIL Open Font License (`Assets/GazeBoard/Licenses`).
+- [Lucide](https://lucide.dev) icons, ISC licence.
+- Word frequency list derived from [FrequencyWords](https://github.com/hermitdave/FrequencyWords) (OpenSubtitles), MIT licence.
