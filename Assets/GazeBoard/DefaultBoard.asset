@@ -1,0 +1,269 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 51d479aec0c25724a86698b71160a1e3, type: 3}
+  m_Name: DefaultBoard
+  m_EditorClassIdentifier: Assembly-CSharp::GazeBoard.Board.BoardDefinition
+  categories:
+  - name: Quick
+    columns: 4
+    rows: 3
+    tiles:
+    - label: Yes
+      text: 
+      kind: 0
+    - label: No
+      text: 
+      kind: 0
+    - label: Maybe
+      text: 
+      kind: 0
+    - label: Help
+      text: 
+      kind: 0
+    - label: Thank you
+      text: 
+      kind: 0
+    - label: Please
+      text: 
+      kind: 0
+    - label: Stop
+      text: 
+      kind: 0
+    - label: Wait
+      text: 
+      kind: 0
+    - label: I don't know
+      text: 
+      kind: 0
+    - label: More
+      text: 
+      kind: 0
+    - label: Again
+      text: 
+      kind: 0
+    - label: I'm done
+      text: 
+      kind: 0
+  - name: Needs
+    columns: 4
+    rows: 3
+    tiles:
+    - label: I need water
+      text: 
+      kind: 0
+    - label: I'm hungry
+      text: 
+      kind: 0
+    - label: I'm in pain
+      text: 
+      kind: 0
+    - label: Bathroom
+      text: 
+      kind: 0
+    - label: I'm tired
+      text: 
+      kind: 0
+    - label: I'm cold
+      text: 
+      kind: 0
+    - label: I'm hot
+      text: 
+      kind: 0
+    - label: Medicine
+      text: 
+      kind: 0
+    - label: Call someone
+      text: 
+      kind: 0
+    - label: I'm uncomfortable
+      text: 
+      kind: 0
+    - label: Please move me
+      text: 
+      kind: 0
+    - label: Blanket
+      text: 
+      kind: 0
+  - name: Feelings
+    columns: 4
+    rows: 3
+    tiles:
+    - label: I'm happy
+      text: 
+      kind: 0
+    - label: I'm sad
+      text: 
+      kind: 0
+    - label: I'm scared
+      text: 
+      kind: 0
+    - label: I'm angry
+      text: 
+      kind: 0
+    - label: I'm okay
+      text: 
+      kind: 0
+    - label: I'm bored
+      text: 
+      kind: 0
+    - label: I'm excited
+      text: 
+      kind: 0
+    - label: I'm lonely
+      text: 
+      kind: 0
+    - label: I'm frustrated
+      text: 
+      kind: 0
+    - label: I'm calm
+      text: 
+      kind: 0
+    - label: I feel sick
+      text: 
+      kind: 0
+    - label: I love you
+      text: 
+      kind: 0
+  - name: People
+    columns: 4
+    rows: 3
+    tiles:
+    - label: Mom
+      text: 
+      kind: 0
+    - label: Dad
+      text: 
+      kind: 0
+    - label: Nurse
+      text: 
+      kind: 0
+    - label: Doctor
+      text: 
+      kind: 0
+    - label: Friend
+      text: 
+      kind: 0
+    - label: Family
+      text: 
+      kind: 0
+    - label: Me
+      text: 
+      kind: 0
+    - label: You
+      text: 
+      kind: 0
+    - label: Everyone
+      text: 
+      kind: 0
+    - label: Nobody
+      text: 
+      kind: 0
+    - label: Who is it?
+      text: 
+      kind: 0
+    - label: Come here
+      text: 
+      kind: 0
+  - name: Spell
+    columns: 6
+    rows: 5
+    tiles:
+    - label: A
+      text: a
+      kind: 1
+    - label: B
+      text: b
+      kind: 1
+    - label: C
+      text: c
+      kind: 1
+    - label: D
+      text: d
+      kind: 1
+    - label: E
+      text: e
+      kind: 1
+    - label: F
+      text: f
+      kind: 1
+    - label: G
+      text: g
+      kind: 1
+    - label: H
+      text: h
+      kind: 1
+    - label: I
+      text: i
+      kind: 1
+    - label: J
+      text: j
+      kind: 1
+    - label: K
+      text: k
+      kind: 1
+    - label: L
+      text: l
+      kind: 1
+    - label: M
+      text: m
+      kind: 1
+    - label: N
+      text: n
+      kind: 1
+    - label: O
+      text: o
+      kind: 1
+    - label: P
+      text: p
+      kind: 1
+    - label: Q
+      text: q
+      kind: 1
+    - label: R
+      text: r
+      kind: 1
+    - label: S
+      text: s
+      kind: 1
+    - label: T
+      text: t
+      kind: 1
+    - label: U
+      text: u
+      kind: 1
+    - label: V
+      text: v
+      kind: 1
+    - label: W
+      text: w
+      kind: 1
+    - label: X
+      text: x
+      kind: 1
+    - label: Y
+      text: y
+      kind: 1
+    - label: Z
+      text: z
+      kind: 1
+    - label: Space
+      text: ' '
+      kind: 5
+    - label: '?'
+      text: '?'
+      kind: 1
+    - label: .
+      text: .
+      kind: 1
+    - label: Speak
+      text: 
+      kind: 2

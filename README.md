@@ -43,6 +43,13 @@ Under the **GazeBoard** menu:
 
 File > Build Profiles > Android > Build And Run. APKs go to `Builds/` (ignored).
 
-Note: when launched over adb (which Build And Run does), Horizon OS may keep audio focus in the
-system shell and mute the app. The app requests audio focus on start to counter this; if it is still
-silent, launch it from **Library > Unknown Sources** on the headset.
+Note: Horizon OS mutes an app that is started with a bare component intent, which is how Unity's
+Build And Run launches it over adb (the PLAY_AUDIO app-op flips to "ignore"). Launching with the
+LAUNCHER and `com.oculus.intent.category.VR` categories, as the Library does, keeps audio on.
+A post-build hook in `HeadsetAudioUnmute.cs` waits for Unity's launch and then restarts the app that
+way. If it is ever silent, run **GazeBoard > Headset: Relaunch App** or start it from
+**Library > Unknown Sources**. Store installs are not affected. Manual equivalent:
+
+```
+adb shell am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -c com.oculus.intent.category.VR -n com.ubayouski.gazeboard/com.unity3d.player.UnityPlayerGameActivity
+```

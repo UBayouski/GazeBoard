@@ -65,7 +65,7 @@ namespace GazeBoard.Speech
         // ---- Bring-up diagnostic: a plain generated tone through a plain AudioSource. ----
         // If this is audible on the headset but the voice is not, the problem is the Wit clip.
         // If neither is audible, Unity audio output itself is not reaching the speakers.
-        private const bool DebugBeep = false;
+        private static readonly bool DebugBeep = false;
         private AudioSource _beepSource;
         private AudioClip _beepClip;
 
@@ -136,10 +136,33 @@ namespace GazeBoard.Speech
         }
 
 #if UNITY_ANDROID && !UNITY_EDITOR
+        private Coroutine _audioRefresh;
+
         private void OnApplicationFocus(bool hasFocus)
         {
+            if (!hasFocus) return;
             // The shell takes audio focus back whenever the system menu opens; reclaim it on return.
-            if (hasFocus) AndroidAudioFocus.Request();
+            AndroidAudioFocus.Request();
+
+            // Horizon OS decides whether an app may play audio (PLAY_AUDIO app-op) and Android
+            // applies that decision only when an output stream is created. Unity keeps one stream
+            // open for the whole session, so a stream created while muted stays muted even after
+            // the OS allows audio again. Re-initialising the audio engine shortly after we gain
+            // focus recreates the stream under the current permission.
+            if (_audioRefresh != null) StopCoroutine(_audioRefresh);
+            _audioRefresh = StartCoroutine(RefreshAudioOutput());
+        }
+
+        private System.Collections.IEnumerator RefreshAudioOutput()
+        {
+            foreach (float delay in new[] { 1.5f, 5f })
+            {
+                yield return new WaitForSecondsRealtime(delay);
+                if (_synth != null && _synth.IsSpeaking) continue; // never cut a phrase short
+                AudioSettings.Reset(AudioSettings.GetConfiguration());
+                Debug.Log("[GazeBoard.Speech] Audio output re-initialised after focus gain.");
+            }
+            _audioRefresh = null;
         }
 #endif
 

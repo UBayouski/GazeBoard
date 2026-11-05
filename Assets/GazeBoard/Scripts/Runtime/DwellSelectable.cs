@@ -45,7 +45,16 @@ namespace GazeBoard
         public bool IsHovered => _hoveringPointers.Count > 0;
         public float Progress => Mathf.Clamp01(_elapsed / EffectiveDwellSeconds);
         public float EffectiveDwellSeconds =>
-            _dwellSecondsOverride > 0f ? _dwellSecondsOverride : DwellSettings.DwellSeconds;
+            _dwellSecondsOverride > 0f ? _dwellSecondsOverride : DwellSettings.DwellSeconds * DwellMultiplier;
+
+        /// <summary>Scales the global dwell time for this tile. Use above 1 for tiles that are costly to hit by accident.</summary>
+        public float DwellMultiplier { get; set; } = 1f;
+
+        /// <summary>
+        /// If true this tile dwells even when DwellSettings.Enabled is false. Used by the tile that
+        /// turns dwell back on, so a gaze-only user can never lock themselves out.
+        /// </summary>
+        public bool AlwaysDwell { get; set; }
 
         public Image ProgressRing
         {
@@ -98,7 +107,7 @@ namespace GazeBoard
                 return;
             }
 
-            if (!DwellSettings.Enabled || !_armed || !IsHovered || !IsInteractable())
+            if ((!DwellSettings.Enabled && !AlwaysDwell) || !_armed || !IsHovered || !IsInteractable())
             {
                 if (_elapsed > 0f) ResetDwell();
                 return;

@@ -67,7 +67,7 @@ namespace GazeBoard.EditorTools
             return changed;
         }
 
-        private static Image CreateRing(Transform parent)
+        internal static Image CreateRing(Transform parent)
         {
             var ringGo = new GameObject(RingName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
             Undo.RegisterCreatedObjectUndo(ringGo, "Create Dwell Ring");
@@ -80,6 +80,7 @@ namespace GazeBoard.EditorTools
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
 
+            // A translucent circle that fills clockwise as the dwell progresses.
             var image = ringGo.GetComponent<Image>();
             image.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Knob.psd");
             image.type = Image.Type.Filled;

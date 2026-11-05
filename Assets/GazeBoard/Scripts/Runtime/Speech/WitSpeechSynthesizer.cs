@@ -62,11 +62,27 @@ namespace GazeBoard.Speech
 
         public void SetRate(float rate)
         {
-            // Wit speed is an integer percentage, 50 to 200, used when no preset voice is selected.
-            var custom = _speaker != null ? _speaker.customWitVoiceSettings : null;
-            if (custom != null)
+            if (_speaker == null) return;
+            int speed = Mathf.RoundToInt(Mathf.Clamp(rate, 0.5f, 2f) * 100f); // Wit speed is a percentage, 50 to 200
+
+            // The speaker normally uses a preset voice; override it with a copy that carries the new speed.
+            if (_speaker.VoiceSettings is Meta.WitAi.TTS.Integrations.TTSWitVoiceSettings current)
             {
-                custom.speed = Mathf.RoundToInt(Mathf.Clamp(rate, 0.5f, 2f) * 100f);
+                if (current.speed == speed) return;
+                _speaker.SetVoiceOverride(new Meta.WitAi.TTS.Integrations.TTSWitVoiceSettings
+                {
+                    SettingsId = current.SettingsId + "@" + speed,
+                    PrependedText = current.PrependedText,
+                    AppendedText = current.AppendedText,
+                    voice = current.voice,
+                    style = current.style,
+                    pitch = current.pitch,
+                    speed = speed,
+                });
+            }
+            else if (_speaker.customWitVoiceSettings != null)
+            {
+                _speaker.customWitVoiceSettings.speed = speed;
             }
         }
 
