@@ -31,6 +31,10 @@ namespace GazeBoard.Board
         VoiceSlower,
         VoiceFaster,
         TestVoice,
+        /// <summary>Cycles the visual theme.</summary>
+        Theme,
+        /// <summary>Toggles passthrough versus the virtual room.</summary>
+        Environment,
     }
 
     [Serializable]

@@ -155,7 +155,9 @@ namespace GazeBoard.Speech
 
         private System.Collections.IEnumerator RefreshAudioOutput()
         {
-            foreach (float delay in new[] { 1.5f, 5f })
+            // Several attempts: when the app was launched while the headset lay on the desk, the
+            // OS may grant audio only some seconds after the user puts it on.
+            foreach (float delay in new[] { 1.5f, 4f, 8f, 12f, 20f })
             {
                 yield return new WaitForSecondsRealtime(delay);
                 if (_synth != null && _synth.IsSpeaking) continue; // never cut a phrase short

@@ -35,7 +35,8 @@ namespace GazeBoard.EditorTools
             string oldPid = Run(adb, $"shell pidof {package}").Trim();
             new Thread(() =>
             {
-                for (int i = 0; i < 90; i++)
+                // Up to 10 minutes: with the headset on the desk the process may only start when it is worn.
+                for (int i = 0; i < 300; i++)
                 {
                     Thread.Sleep(2000);
                     string pid = Run(adb, $"shell pidof {package}").Trim();
@@ -45,7 +46,7 @@ namespace GazeBoard.EditorTools
                     Debug.Log($"[GazeBoard] {RelaunchAsVrApp(adb, package)}");
                     return;
                 }
-                Debug.Log("[GazeBoard] App did not start within 3 minutes; use GazeBoard > Headset: Relaunch App if it is silent.");
+                Debug.Log("[GazeBoard] App did not start within 10 minutes; use GazeBoard > Headset: Relaunch App if it is silent.");
             }) { IsBackground = true }.Start();
         }
 
@@ -66,6 +67,17 @@ namespace GazeBoard.EditorTools
         {
             string component = ResolveLauncherActivity(adb, package);
             if (string.IsNullOrEmpty(component)) return $"could not resolve the launcher activity of {package}";
+
+            // Already started the right way (e.g. from the Library)? Then leave it alone.
+            string tasks = Run(adb, "shell dumpsys activity activities");
+            foreach (string line in tasks.Split('\n'))
+            {
+                // e.g. "Intent { act=android.intent.action.MAIN cat=[...,com.oculus.intent.category.VR] ... cmp=<package>/... }"
+                if (line.Contains("Intent {") && line.Contains("cmp=" + package + "/") && line.Contains(VrCategory))
+                {
+                    return "app was already launched as a VR app; no relaunch needed.";
+                }
+            }
 
             Run(adb, $"shell am force-stop {package}");
             string start = Run(adb,

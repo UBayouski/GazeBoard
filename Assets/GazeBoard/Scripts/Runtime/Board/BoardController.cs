@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using GazeBoard.Environment;
 using GazeBoard.Speech;
+using GazeBoard.Theme;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -26,15 +28,12 @@ namespace GazeBoard.Board
         [SerializeField] private BoardTile _speakTile;
         [SerializeField] private BoardTile _backspaceTile;
         [SerializeField] private BoardTile _clearTile;
+        [SerializeField] private Image _boardBackground;
+        [SerializeField] private Image _sentenceBox;
 
-        [Header("Colours")]
-        [SerializeField] private Color _phraseColor = new Color(0.16f, 0.32f, 0.55f);
-        [SerializeField] private Color _letterColor = new Color(0.22f, 0.22f, 0.28f);
-        [SerializeField] private Color _actionColor = new Color(0.55f, 0.30f, 0.12f);
-        [SerializeField] private Color _infoColor = new Color(0.18f, 0.18f, 0.20f);
-        [SerializeField] private Color _categoryColor = new Color(0.20f, 0.42f, 0.30f);
-        [SerializeField] private Color _categoryActiveColor = new Color(0.30f, 0.65f, 0.42f);
-        [SerializeField] private Color _highlightTint = new Color(1.25f, 1.25f, 1.25f);
+        private ThemeManager _themes;
+        private BoardTheme Theme => _themes != null ? _themes.Current : _fallbackTheme;
+        private static BoardTheme _fallbackTheme;
 
         [Header("Dwell")]
         [SerializeField, Tooltip("Category tiles take this many times the global dwell, so a drifting gaze does not switch pages.")]
@@ -62,19 +61,49 @@ namespace GazeBoard.Board
             _sentence.WhenChanged += text => { if (_sentenceText != null) _sentenceText.text = text; };
             if (_sentenceText != null) _sentenceText.text = "";
 
+            _themes = GetComponent<ThemeManager>();
+            if (_themes == null) _fallbackTheme ??= BoardTheme.Defaults()[0];
+            else _themes.WhenChanged += HandleThemeChanged;
+
             BindActionTile(_speakTile, new TileData("Speak", TileKind.SpeakSentence));
             BindActionTile(_backspaceTile, new TileData("Undo", TileKind.Backspace));
             BindActionTile(_clearTile, new TileData("Clear", TileKind.Clear));
 
+            ApplyBoardTheme();
             BuildCategoryBar();
             ShowCategory(0);
+        }
+
+        private void OnDestroy()
+        {
+            if (_themes != null) _themes.WhenChanged -= HandleThemeChanged;
+        }
+
+        private void HandleThemeChanged(BoardTheme theme) => Repaint();
+
+        /// <summary>Re-applies the current theme to everything on the board.</summary>
+        private void Repaint()
+        {
+            ApplyBoardTheme();
+            BindActionTile(_speakTile, new TileData("Speak", TileKind.SpeakSentence));
+            BindActionTile(_backspaceTile, new TileData("Undo", TileKind.Backspace));
+            BindActionTile(_clearTile, new TileData("Clear", TileKind.Clear));
+            BuildCategoryBar();
+            ShowCategory(_categoryIndex);
+        }
+
+        private void ApplyBoardTheme()
+        {
+            if (_boardBackground != null) _boardBackground.color = Theme.boardBackground;
+            if (_sentenceBox != null) _sentenceBox.color = Theme.sentenceBox;
+            if (_sentenceText != null) _sentenceText.color = Theme.sentenceText;
         }
 
         private void BindActionTile(BoardTile tile, TileData data)
         {
             if (tile == null) return;
             tile.Bind(data, OnTileSelected);
-            tile.SetColors(_actionColor, _actionColor * _highlightTint);
+            tile.ApplyTheme(Theme, Theme.actionTile);
         }
 
         private void BuildCategoryBar()
@@ -114,8 +143,7 @@ namespace GazeBoard.Board
             for (int i = 0; i < _categoryTiles.Count; i++)
             {
                 bool active = i == _categoryIndex;
-                _categoryTiles[i].SetColors(active ? _categoryActiveColor : _categoryColor,
-                    (active ? _categoryActiveColor : _categoryColor) * _highlightTint);
+                _categoryTiles[i].ApplyTheme(Theme, active ? Theme.categoryActiveTile : Theme.categoryTile);
             }
 
             RebuildGrid();
@@ -182,12 +210,12 @@ namespace GazeBoard.Board
             tile.Bind(data, OnTileSelected);
             Color c = data.kind switch
             {
-                TileKind.Phrase => _phraseColor,
-                TileKind.Letter => _letterColor,
-                TileKind.Info => _infoColor,
-                _ => _actionColor,
+                TileKind.Phrase => Theme.phraseTile,
+                TileKind.Letter => Theme.letterTile,
+                TileKind.Info => Theme.infoTile,
+                _ => Theme.actionTile,
             };
-            tile.SetColors(c, c * _highlightTint);
+            tile.ApplyTheme(Theme, c);
 
             if (data.kind == TileKind.Info) tile.SetInteractable(false);
             if (data.kind == TileKind.DwellToggle)
@@ -224,6 +252,10 @@ namespace GazeBoard.Board
             yield return new TileData("Test voice", TileKind.TestVoice);
 
             yield return new TileData(GazeSourceLabel(), TileKind.Info);
+            yield return new TileData("Theme\n" + Theme.displayName, TileKind.Theme);
+            var env = EnvironmentManager.Instance;
+            yield return new TileData(env == null ? "Room\n(not set up)"
+                : env.Mode == EnvironmentMode.Passthrough ? "View\nMy room" : "View\nCalm room", TileKind.Environment);
         }
 
         private static string GazeSourceLabel()
@@ -266,31 +298,46 @@ namespace GazeBoard.Board
                 // Settings. Each change refreshes the page so the value tiles update.
                 case TileKind.DwellSlower:
                     DwellSettings.DwellSeconds += 0.2f;
-                    SpeechService.Speak($"Dwell {DwellSettings.DwellSeconds:0.0} seconds");
+                    SpeechService.Speak(SpokenPhrases.DwellChanged(DwellSettings.DwellSeconds));
                     RebuildGrid();
                     break;
                 case TileKind.DwellFaster:
                     DwellSettings.DwellSeconds -= 0.2f;
-                    SpeechService.Speak($"Dwell {DwellSettings.DwellSeconds:0.0} seconds");
+                    SpeechService.Speak(SpokenPhrases.DwellChanged(DwellSettings.DwellSeconds));
                     RebuildGrid();
                     break;
                 case TileKind.DwellToggle:
                     DwellSettings.Enabled = !DwellSettings.Enabled;
-                    SpeechService.Speak(DwellSettings.Enabled ? "Gaze select on" : "Gaze select off. Pinch to choose tiles.");
+                    SpeechService.Speak(DwellSettings.Enabled ? SpokenPhrases.GazeSelectOn : SpokenPhrases.GazeSelectOff);
                     RebuildGrid();
                     break;
                 case TileKind.VoiceSlower:
                     SpeechService.Rate -= 0.1f;
-                    SpeechService.Speak("This is my voice speed now.");
+                    SpeechService.Speak(SpokenPhrases.VoiceSpeedChanged);
                     RebuildGrid();
                     break;
                 case TileKind.VoiceFaster:
                     SpeechService.Rate += 0.1f;
-                    SpeechService.Speak("This is my voice speed now.");
+                    SpeechService.Speak(SpokenPhrases.VoiceSpeedChanged);
                     RebuildGrid();
                     break;
                 case TileKind.TestVoice:
-                    SpeechService.Speak("Hello, I am your Gaze Board voice.");
+                    SpeechService.Speak(SpokenPhrases.TestVoice);
+                    break;
+                case TileKind.Theme:
+                    if (_themes != null)
+                    {
+                        BoardTheme next = _themes.Next(); // triggers Repaint via WhenChanged
+                        SpeechService.Speak(next.spokenName);
+                    }
+                    break;
+                case TileKind.Environment:
+                    if (EnvironmentManager.Instance != null)
+                    {
+                        EnvironmentMode mode = EnvironmentManager.Instance.Toggle();
+                        SpeechService.Speak(mode == EnvironmentMode.Passthrough ? SpokenPhrases.EnvironmentPassthrough : SpokenPhrases.EnvironmentRoom);
+                        RebuildGrid();
+                    }
                     break;
                 case TileKind.Info:
                     break;

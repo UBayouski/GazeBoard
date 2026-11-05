@@ -138,10 +138,17 @@ namespace GazeBoard.EditorTools
             gridLayout.startCorner = GridLayoutGroup.Corner.UpperLeft;
             gridLayout.startAxis = GridLayoutGroup.Axis.Horizontal;
 
-            // Controller.
+            // Theme manager (built-in themes unless assets are assigned) and controller.
+            if (canvas.GetComponent<GazeBoard.Theme.ThemeManager>() == null)
+            {
+                Undo.AddComponent<GazeBoard.Theme.ThemeManager>(canvas.gameObject);
+            }
+
             BoardController controller = canvas.GetComponent<BoardController>();
             if (controller == null) controller = Undo.AddComponent<BoardController>(canvas.gameObject);
             var so = new SerializedObject(controller);
+            so.FindProperty("_boardBackground").objectReferenceValue = background;
+            so.FindProperty("_sentenceBox").objectReferenceValue = boxImage;
             so.FindProperty("_definition").objectReferenceValue = GetOrCreateDefinition(forceDefaults: false);
             so.FindProperty("_tileTemplate").objectReferenceValue = template;
             so.FindProperty("_tileGrid").objectReferenceValue = grid;
@@ -234,10 +241,17 @@ namespace GazeBoard.EditorTools
             dwellSo.FindProperty("_progressRing").objectReferenceValue = ring;
             dwellSo.ApplyModifiedProperties();
 
+            // Outline for themes that want one; ThemeManager enables and colours it.
+            Outline outline = rect.gameObject.AddComponent<Outline>();
+            outline.enabled = false;
+            outline.useGraphicAlpha = false;
+
             BoardTile tile = rect.gameObject.AddComponent<BoardTile>();
             var tileSo = new SerializedObject(tile);
             tileSo.FindProperty("_label").objectReferenceValue = label;
             tileSo.FindProperty("_background").objectReferenceValue = bg;
+            tileSo.FindProperty("_outline").objectReferenceValue = outline;
+            tileSo.FindProperty("_roundedSprite").objectReferenceValue = RoundedSprite();
             tileSo.ApplyModifiedProperties();
 
             return tile;

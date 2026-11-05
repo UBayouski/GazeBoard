@@ -14,6 +14,8 @@ namespace GazeBoard.Board
     {
         [SerializeField] private TMP_Text _label;
         [SerializeField] private Image _background;
+        [SerializeField] private Outline _outline;
+        [SerializeField] private Sprite _roundedSprite;
 
         private Button _button;
         private Action<BoardTile> _onSelected;
@@ -21,6 +23,30 @@ namespace GazeBoard.Board
         public TileData Data { get; private set; }
         public TMP_Text Label => _label;
         public Image Background => _background;
+
+        /// <summary>Applies colours, outline, corner style and ring colour from a theme.</summary>
+        public void ApplyTheme(Theme.BoardTheme theme, Color tileColor)
+        {
+            SetColors(tileColor, theme.Highlight(tileColor));
+
+            if (_label != null) _label.color = theme.TextFor(tileColor);
+
+            if (_background != null)
+            {
+                _background.sprite = theme.roundedCorners ? _roundedSprite : null;
+                _background.type = theme.roundedCorners ? Image.Type.Sliced : Image.Type.Simple;
+            }
+
+            if (_outline != null)
+            {
+                _outline.enabled = theme.outlineWidth > 0f && theme.outlineColor.a > 0f;
+                _outline.effectColor = theme.outlineColor;
+                _outline.effectDistance = new Vector2(theme.outlineWidth, -theme.outlineWidth);
+            }
+
+            var dwell = GetComponent<DwellSelectable>();
+            if (dwell != null && dwell.ProgressRing != null) dwell.ProgressRing.color = theme.dwellRing;
+        }
 
         private void Awake()
         {

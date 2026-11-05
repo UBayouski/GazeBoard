@@ -28,13 +28,8 @@ namespace GazeBoard.Speech
 
             var service = _speaker.TTSService;
 
-            // Raw PCM needs no decoder on device. Removes one variable while bringing up audio on Quest.
-            if (service is Meta.WitAi.TTS.Integrations.TTSWit wit && wit.RequestSettings.audioType != Meta.WitAi.TTSWitAudioType.PCM)
-            {
-                Debug.Log($"{Tag} Switching Wit audio type from {wit.RequestSettings.audioType} to PCM.");
-                wit.RequestSettings.audioType = Meta.WitAi.TTSWitAudioType.PCM;
-            }
-
+            // Audio type stays as configured on the TTS service, so runtime clip ids and extensions
+            // match the preloaded files in StreamingAssets/TTS.
             Debug.Log($"{Tag} Using Voice SDK TTSSpeaker '{speaker.name}' (voice preset: {speaker.VoiceID}, " +
                       $"service: {(service != null ? service.name : "NONE")}, audio source: {(speaker.AudioSource != null ? speaker.AudioSource.name : "NONE")}).");
         }
@@ -51,9 +46,14 @@ namespace GazeBoard.Speech
                 return;
             }
             Debug.Log($"{Tag} Wit speak request: \"{text}\" (interrupt={interrupt})");
-            if (interrupt) _speaker.Speak(text);
-            else _speaker.SpeakQueued(text);
+            // Preload: play from the clips baked into the APK when present (offline), otherwise the
+            // SDK streams from Wit.ai. See GazeBoard > Preload Board Phrases.
+            if (interrupt) _speaker.Speak(text, PreloadCache);
+            else _speaker.SpeakQueued(text, PreloadCache);
         }
+
+        private static readonly Meta.WitAi.TTS.Data.TTSDiskCacheSettings PreloadCache =
+            new Meta.WitAi.TTS.Data.TTSDiskCacheSettings { DiskCacheLocation = Meta.WitAi.TTS.Data.TTSDiskCacheLocation.Preload };
 
         public void Stop()
         {
