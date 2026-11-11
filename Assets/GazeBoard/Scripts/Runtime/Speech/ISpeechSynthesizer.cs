@@ -14,6 +14,12 @@ namespace GazeBoard.Speech
         /// <summary>Speak the text. When interrupt is true, anything queued or playing is dropped first.</summary>
         void Speak(string text, bool interrupt = true, bool userText = false);
 
+        /// <summary>
+        /// Whether this text can be spoken with no internet connection: a clip for it is already
+        /// on the device. Backends that never need a connection return true.
+        /// </summary>
+        bool HasOfflineClip(string text);
+
         /// <summary>Stop any current or queued speech.</summary>
         void Stop();
 

@@ -26,6 +26,7 @@ namespace GazeBoard.EditorTools
         private const string MeshAssetPath = EnvFolder + "/CalmRoomMeshes.asset";
         private const string LightingAssetPath = EnvFolder + "/CalmRoomLighting.lighting";
         private const string PreviewFolder = "Builds/RoomPreview";
+        private const float SeaWidth = 1600f, SeaDepth = 800f, ShoreWidth = 160f, ShoreDepth = 3.2f, ShoreZ = 24f, ShoreOffset = 0.4f;
 
         // Room shell.
         private const float X0 = -3.2f, X1 = 3.2f, Z0 = -3.0f, Z1 = 4.5f, H = 2.8f;
@@ -62,6 +63,29 @@ namespace GazeBoard.EditorTools
                 return;
             }
             Debug.Log("[GazeBoard] Calm room built; baking its lighting (progress is at the bottom right of the editor). Preview images are written when it finishes.");
+        }
+
+        /// <summary>
+        /// Puts the moving-sea shader on the two sea materials. The room's meshes already use
+        /// those materials and the sea takes no part in the bake, so nothing is rebuilt or baked.
+        /// </summary>
+        [MenuItem("GazeBoard/Calm Room/Update Sea (no bake)")]
+        private static void UpdateSea()
+        {
+            Directory.CreateDirectory(EnvFolder);
+            OceanMaterial();
+            ShoreMaterial();
+            AssetDatabase.SaveAssets();
+
+            GameObject room = FindRoom();
+            if (room != null)
+            {
+                bool wasActive = room.activeSelf;
+                room.SetActive(true);
+                CapturePreview(room);
+                room.SetActive(wasActive);
+            }
+            Debug.Log("[GazeBoard] Sea materials updated: the sea moves and waves break on the beach. No bake is needed; build and run to see it.");
         }
 
         [MenuItem("GazeBoard/Calm Room/Capture Preview Images")]
@@ -146,7 +170,7 @@ namespace GazeBoard.EditorTools
         {
             public Material floor, wall, ceiling, trim, beam, wood, woodDark, rug, fabric, cushion, accent,
                 linen, metal, terracotta, leafA, leafB, soil, ceramic, door, lampShade, deck, trunk,
-                sand, shore, ocean, palmTrunk, palmLeaf, palmLeafDark, rock, rockTop, headland, red, brass,
+                sand, shore, ocean, palmTrunk, palmLeaf, palmLeafDark, rock, cliff, rockTop, headland, red, brass,
                 artA, artB, artC;
             public Material[] books;
         }
@@ -184,12 +208,13 @@ namespace GazeBoard.EditorTools
                 deck = Mat("CalmDeck", new Color(0.56f, 0.46f, 0.36f), grain),
                 trunk = Mat("CalmTrunk", new Color(0.33f, 0.25f, 0.19f)),
                 sand = Mat("CalmSand", new Color(0.93f, 0.84f, 0.66f), plaster),
-                shore = Mat("CalmShore", Color.white, SaveTexture("CalmTexShore", ShoreTexture(1024, 128), repeat: false), unlit: true),
-                ocean = Mat("CalmOcean", Color.white, SaveTexture("CalmTexOcean", OceanTexture(64, 1024), repeat: false), unlit: true),
+                shore = ShoreMaterial(),
+                ocean = OceanMaterial(),
                 palmTrunk = Mat("CalmPalmTrunk", new Color(0.52f, 0.42f, 0.32f)),
                 palmLeaf = Mat("CalmPalmLeaf", new Color(0.32f, 0.52f, 0.26f)),
                 palmLeafDark = Mat("CalmPalmLeafDark", new Color(0.24f, 0.42f, 0.22f)),
                 rock = Mat("CalmRock", new Color(0.70f, 0.63f, 0.55f)),
+                cliff = Mat("CalmCliff", new Color(0.98f, 0.90f, 0.78f), SaveTexture("CalmTexStrata", StrataTexture(512), repeat: true)),
                 rockTop = Mat("CalmRockTop", new Color(0.42f, 0.56f, 0.38f)),
                 headland = Mat("CalmHeadland", new Color(0.62f, 0.71f, 0.78f), null, unlit: true),
                 red = Mat("CalmRed", new Color(0.76f, 0.26f, 0.22f)),
@@ -453,18 +478,18 @@ namespace GazeBoard.EditorTools
             // Low round table in front of it, with a mug and two books.
             Vector3 table = new Vector3(1.55f, 0f, 1.5f);
             Group wood = G("Furniture", p.wood);
-            Cyl(wood, table + new Vector3(0f, 0.40f, 0f), 0.78f, 0.04f);
+            Cyl(wood, table + new Vector3(0f, 0.40f, 0f), 0.78f, 0.04f, default, round: true);
             Cyl(G("Metal", p.metal), table + new Vector3(0f, 0.20f, 0f), 0.07f, 0.38f);
-            Cyl(G("Metal", p.metal), table + new Vector3(0f, 0.012f, 0f), 0.42f, 0.024f);
+            Cyl(G("Metal", p.metal), table + new Vector3(0f, 0.012f, 0f), 0.42f, 0.024f, default, round: true);
             Box(G("Books", p.books[1]), table + new Vector3(-0.12f, 0.44f, 0.08f), new Vector3(0.22f, 0.035f, 0.30f), new Vector3(0f, 22f, 0f));
             Box(G("Books", p.books[2]), table + new Vector3(-0.12f, 0.475f, 0.08f), new Vector3(0.20f, 0.03f, 0.27f), new Vector3(0f, 9f, 0f));
-            Cyl(G("Ceramic", p.ceramic), table + new Vector3(0.16f, 0.465f, -0.1f), 0.085f, 0.09f);
+            Cyl(G("Ceramic", p.ceramic), table + new Vector3(0.16f, 0.465f, -0.1f), 0.085f, 0.09f, default, round: true);
 
             // Floor lamp beyond the sofa. Its glow is a baked light, added with the other lights.
             Vector3 lamp = LampPosition;
-            Cyl(G("Metal", p.metal), lamp + new Vector3(0f, 0.015f, 0f), 0.30f, 0.03f);
+            Cyl(G("Metal", p.metal), lamp + new Vector3(0f, 0.015f, 0f), 0.30f, 0.03f, default, round: true);
             Cyl(G("Metal", p.metal), lamp + new Vector3(0f, 0.75f, 0f), 0.028f, 1.5f);
-            Cyl(G("Lamp", p.lampShade, gi: false), lamp + new Vector3(0f, 1.62f, 0f), 0.40f, 0.30f);
+            Cyl(G("Lamp", p.lampShade, gi: false), lamp + new Vector3(0f, 1.62f, 0f), 0.40f, 0.30f, default, round: true);
 
             // Two prints above the sofa.
             Picture(p, p.artA, new Vector3(X1, 1.72f, 1.0f), 0.50f, 0.64f, onRightWall: true);
@@ -482,7 +507,7 @@ namespace GazeBoard.EditorTools
             foreach (float z in new[] { -0.68f, 0.68f })
                 Box(wood, bench + new Vector3(0f, 0.2f, z), new Vector3(0.36f, 0.4f, 0.05f));
             Box(G("Sofa", p.accent), bench + new Vector3(0f, 0.48f, -0.35f), new Vector3(0.36f, 0.07f, 0.55f));
-            Cyl(G("Basket", p.linen), bench + new Vector3(0.02f, 0.16f, 0.25f), 0.32f, 0.30f);
+            Cyl(G("Basket", p.linen), bench + new Vector3(0.02f, 0.16f, 0.25f), 0.32f, 0.30f, default, round: true);
             Ball(G("Ceramic", p.ceramic), bench + new Vector3(0f, 0.58f, 0.45f), new Vector3(0.18f, 0.26f, 0.18f));
             Picture(p, p.artC, new Vector3(X0, 1.6f, -0.2f), 1.1f, 0.88f, onRightWall: false);
         }
@@ -503,7 +528,7 @@ namespace GazeBoard.EditorTools
             Box(wood, board + new Vector3(0f, 0.46f, 0f), new Vector3(1.7f, 0.56f, 0.42f));
             foreach (float x in new[] { -0.78f, 0.78f })
                 Box(G("Furniture", p.woodDark), board + new Vector3(x, 0.09f, 0f), new Vector3(0.05f, 0.18f, 0.36f));
-            Cyl(G("Ceramic", p.ceramic), board + new Vector3(-0.5f, 0.86f, 0f), 0.16f, 0.24f);
+            Cyl(G("Ceramic", p.ceramic), board + new Vector3(-0.5f, 0.86f, 0f), 0.16f, 0.24f, default, round: true);
             Box(G("Books", p.books[3]), board + new Vector3(0.35f, 0.76f, 0f), new Vector3(0.3f, 0.04f, 0.22f), new Vector3(0f, 12f, 0f));
             Picture(p, p.artB, new Vector3(-1.1f, 1.7f, Z0), 0.8f, 1.0f, onRightWall: false, onBackWall: true);
         }
@@ -531,15 +556,17 @@ namespace GazeBoard.EditorTools
 
         private static void BuildPlants(Palette p)
         {
-            FloorPlant(p, new Vector3(X0 + 0.55f, 0f, Z1 - 0.6f), 1.25f);
-            FloorPlant(p, new Vector3(X1 - 0.5f, 0f, Z1 - 0.55f), 0.95f);
+            // The two by the window stand either side of the board: kept modest, so they frame it
+            // rather than crowd it.
+            FloorPlant(p, new Vector3(X0 + 0.55f, 0f, Z1 - 0.6f), 1.0f);
+            FloorPlant(p, new Vector3(X1 - 0.5f, 0f, Z1 - 0.55f), 0.85f);
             FloorPlant(p, new Vector3(X0 + 0.5f, 0f, Z0 + 0.5f), 1.05f);
         }
 
         private static void FloorPlant(Palette p, Vector3 at, float scale)
         {
-            Cyl(G("Pots", p.terracotta), at + new Vector3(0f, 0.19f * scale, 0f), 0.44f * scale, 0.38f * scale);
-            Cyl(G("Pots", p.soil), at + new Vector3(0f, 0.385f * scale, 0f), 0.38f * scale, 0.01f);
+            Cyl(G("Pots", p.terracotta), at + new Vector3(0f, 0.19f * scale, 0f), 0.44f * scale, 0.38f * scale, default, round: true);
+            Cyl(G("Pots", p.soil), at + new Vector3(0f, 0.385f * scale, 0f), 0.38f * scale, 0.01f, default, round: true);
             Cyl(G("Pots", p.trunk), at + new Vector3(0f, 0.7f * scale, 0f), 0.05f * scale, 0.65f * scale, new Vector3(Range(-5f, 5f), 0f, Range(-5f, 5f)));
             Vector3 crown = at + new Vector3(0f, 1.15f * scale, 0f);
             for (int i = 0; i < 11; i++)
@@ -554,7 +581,7 @@ namespace GazeBoard.EditorTools
         {
             // A beach house: a short deck, sand running down to the sea, a few palms, and a cliff
             // with a sea stack off to the right. Texels are spent sparingly out here.
-            const float sandY = -0.3f, seaY = -1.0f, slopeFrom = 18f, shoreZ = 24f;
+            const float sandY = -0.3f, seaY = -1.0f, slopeFrom = 18f, shoreZ = ShoreZ;
 
             Box(G("Outside", p.deck, lightmapScale: 0.25f), new Vector3(0f, -0.12f, 5.9f), new Vector3(9f, 0.2f, 2.4f));
 
@@ -568,8 +595,8 @@ namespace GazeBoard.EditorTools
 
             // The sea is plain colour (a gradient from the shallows out), with a strip of wet
             // sand and foam where it meets the beach. Neither takes part in the bake.
-            Box(G("Sea", p.ocean, gi: false), new Vector3(0f, seaY - 0.05f, shoreZ + 400f), new Vector3(1600f, 0.1f, 800f), default, fitUv: true);
-            Box(G("Sea", p.shore, gi: false), new Vector3(0f, seaY - 0.03f, shoreZ + 0.4f), new Vector3(160f, 0.1f, 3.2f), default, fitUv: true);
+            Box(G("Sea", p.ocean, gi: false), new Vector3(0f, seaY - 0.05f, shoreZ + SeaDepth / 2f), new Vector3(SeaWidth, 0.1f, SeaDepth), default, fitUv: true);
+            Box(G("Sea", p.shore, gi: false), new Vector3(0f, seaY - 0.03f, shoreZ + ShoreOffset), new Vector3(ShoreWidth, 0.1f, ShoreDepth), default, fitUv: true);
 
             Palm(p, new Vector3(-5.4f, sandY, 11.5f), 6.4f, 9f, -70f);
             Palm(p, new Vector3(-2.3f, sandY, 15.5f), 5.2f, 6f, 30f);
@@ -583,16 +610,43 @@ namespace GazeBoard.EditorTools
 
             // Cliff: blocks stepping down from a headland to a lone stack in the water. It is
             // baked so its faces catch the sun differently, at a fraction of a texel per metre.
-            Group cliff = G("Cliff", p.rock, lightmapScale: 0.02f);
-            Group top = G("Cliff", p.rockTop, lightmapScale: 0.02f);
-            CliffBlock(cliff, top, new Vector3(64f, seaY, 132f), new Vector3(62f, 40f, 46f), 14f);
-            CliffBlock(cliff, top, new Vector3(36f, seaY, 120f), new Vector3(30f, 30f, 30f), -18f);
-            CliffBlock(cliff, top, new Vector3(20f, seaY, 111f), new Vector3(16f, 17f, 18f), 26f);
+            Group cliff = G("Cliff", p.cliff, lightmapScale: 0.03f);
+            Group top = G("Cliff", p.rockTop, lightmapScale: 0.03f);
+            Crag(cliff, top, new Vector3(64f, seaY, 132f), new Vector3(62f, 40f, 46f), 14f);
+            Crag(cliff, top, new Vector3(36f, seaY, 120f), new Vector3(30f, 30f, 30f), -18f);
+            Crag(cliff, top, new Vector3(20f, seaY, 111f), new Vector3(16f, 17f, 18f), 26f);
             CliffBlock(cliff, null, new Vector3(6f, seaY, 104f), new Vector3(6f, 13f, 6f), 12f);
+            CliffBlock(cliff, null, new Vector3(5f, seaY, 103f), new Vector3(3.2f, 16.5f, 3.4f), 40f);
             CliffBlock(cliff, null, new Vector3(-1f, seaY, 101f), new Vector3(3f, 5f, 3.4f), -30f);
 
             // A far headland on the other side, already lost in haze.
             Ball(G("Far", p.headland, gi: false), new Vector3(-260f, seaY - 6f, 520f), new Vector3(420f, 50f, 80f));
+        }
+
+        /// <summary>
+        /// A mass of cliff: a core with buttresses, ledges and pillars stood against it at other
+        /// angles and heights. Seen against the light a single block is one flat tone; broken up,
+        /// its faces turn different ways, catch different light and give it an outline.
+        /// </summary>
+        private static void Crag(Group rock, Group cap, Vector3 foot, Vector3 size, float yaw)
+        {
+            CliffBlock(rock, cap, foot, size, yaw);
+            Quaternion heading = Quaternion.Euler(0f, yaw, 0f);
+            for (int i = 0; i < 7; i++)
+            {
+                // Spread across the seaward face (the camera side, -Z in the block's own frame) and round the ends.
+                float along = Range(-0.55f, 0.55f);
+                Vector3 offset = heading * new Vector3(along * size.x, 0f, -size.z * Range(0.36f, 0.56f));
+                var part = new Vector3(size.x * Range(0.16f, 0.34f), size.y * Range(0.35f, 1.06f), size.z * Range(0.22f, 0.42f));
+                CliffBlock(rock, i % 3 == 0 ? cap : null, foot + offset, part, yaw + Range(-40f, 40f));
+            }
+            // A scree slope of low blocks at the waterline.
+            for (int i = 0; i < 4; i++)
+            {
+                Vector3 offset = heading * new Vector3(Range(-0.6f, 0.6f) * size.x, 0f, -size.z * Range(0.6f, 0.78f));
+                var part = new Vector3(size.x * Range(0.08f, 0.16f), size.y * Range(0.06f, 0.16f), size.z * Range(0.12f, 0.2f));
+                CliffBlock(rock, null, foot + offset, part, Range(0f, 90f));
+            }
         }
 
         /// <summary>One block of cliff rising from the sea, leaning slightly, with an optional green cap.</summary>
@@ -600,7 +654,7 @@ namespace GazeBoard.EditorTools
         {
             var euler = new Vector3(Range(-3f, 3f), yaw, Range(-4f, 4f));
             // Sunk a little, so the lean never lifts an edge clear of the water.
-            Box(rock, foot + new Vector3(0f, size.y / 2f - 3f, 0f), new Vector3(size.x, size.y + 6f, size.z), euler);
+            Box(rock, foot + new Vector3(0f, size.y / 2f - 3f, 0f), new Vector3(size.x, size.y + 6f, size.z), euler, texMetres: 14f);
             if (cap != null)
             {
                 Ball(cap, foot + new Vector3(0f, size.y, 0f), new Vector3(size.x * 0.95f, size.y * 0.16f, size.z * 0.95f), new Vector3(0f, yaw, 0f));
@@ -662,7 +716,9 @@ namespace GazeBoard.EditorTools
             fill.areaSize = new Vector2(4.5f, 5f);
             fill.shadows = LightShadows.Soft;
 
-            Light lamp = NewLight(root, "Lamp Glow", LightType.Point, new Color(1.00f, 0.80f, 0.55f), 2.2f);
+            // A glow, not a second sun: at 2.2 it burned the wall beside it to white, right next
+            // to the board.
+            Light lamp = NewLight(root, "Lamp Glow", LightType.Point, new Color(1.00f, 0.80f, 0.55f), 1.2f);
             lamp.transform.localPosition = LampPosition + new Vector3(0f, 1.5f, 0f);
             lamp.range = 4.5f;
             lamp.shadows = LightShadows.Soft;
@@ -871,20 +927,22 @@ namespace GazeBoard.EditorTools
             return group;
         }
 
-        private static void Box(Group group, Vector3 centre, Vector3 size, Vector3 euler = default, bool fitUv = false)
+        /// <summary>texMetres: metres per repeat of the texture, for things far larger than furniture.</summary>
+        private static void Box(Group group, Vector3 centre, Vector3 size, Vector3 euler = default, bool fitUv = false, float texMetres = TexMetres)
         {
             group.parts.Add(new CombineInstance
             {
-                mesh = BoxMesh(size, fitUv),
+                mesh = BoxMesh(size, fitUv, texMetres),
                 transform = _matrix * Matrix4x4.TRS(centre, Quaternion.Euler(euler), Vector3.one),
             });
         }
 
-        private static void Cyl(Group group, Vector3 centre, float diameter, float height, Vector3 euler = default)
+        /// <summary>round: use a 48-sided cylinder, for anything wide enough that 20 sides show as facets.</summary>
+        private static void Cyl(Group group, Vector3 centre, float diameter, float height, Vector3 euler = default, bool round = false)
         {
             group.parts.Add(new CombineInstance
             {
-                mesh = Builtin("Cylinder.fbx"), // 1 m across, 2 m tall
+                mesh = round ? RoundCylinder() : Builtin("Cylinder.fbx"), // both 1 m across, 2 m tall
                 transform = _matrix * Matrix4x4.TRS(centre, Quaternion.Euler(euler), new Vector3(diameter, height / 2f, diameter)),
             });
         }
@@ -968,7 +1026,7 @@ namespace GazeBoard.EditorTools
         /// A box at its real size, so textures tile at one scale everywhere: UVs are metres over
         /// TexMetres. fitUv instead stretches the texture once across each face (for prints).
         /// </summary>
-        private static Mesh BoxMesh(Vector3 size, bool fitUv)
+        private static Mesh BoxMesh(Vector3 size, bool fitUv, float texMetres = TexMetres)
         {
             Vector3 h = size * 0.5f;
             // Per face: normal, U axis, V axis. Cross(U, V) is -normal, which makes the face wind outward.
@@ -996,7 +1054,7 @@ namespace GazeBoard.EditorTools
                 vertices[i + 1] = c - u * hu + v * hv;
                 vertices[i + 2] = c + u * hu + v * hv;
                 vertices[i + 3] = c + u * hu - v * hv;
-                float su = fitUv ? 1f : hu * 2f / TexMetres, sv = fitUv ? 1f : hv * 2f / TexMetres;
+                float su = fitUv ? 1f : hu * 2f / texMetres, sv = fitUv ? 1f : hv * 2f / texMetres;
                 uvs[i] = new Vector2(0f, 0f);
                 uvs[i + 1] = new Vector2(0f, sv);
                 uvs[i + 2] = new Vector2(su, sv);
@@ -1007,6 +1065,61 @@ namespace GazeBoard.EditorTools
                 triangles[t + 3] = i; triangles[t + 4] = i + 2; triangles[t + 5] = i + 3;
             }
             return new Mesh { vertices = vertices, normals = normals, uv = uvs, triangles = triangles };
+        }
+
+        private static Mesh _roundCylinder;
+
+        /// <summary>A cylinder with the built-in one's proportions (1 m across, 2 m tall) but 48 sides.</summary>
+        private static Mesh RoundCylinder()
+        {
+            if (_roundCylinder != null) return _roundCylinder;
+            const int n = 48;
+            var vertices = new List<Vector3>();
+            var normals = new List<Vector3>();
+            var uvs = new List<Vector2>();
+            var triangles = new List<int>();
+
+            // Side: one column of two vertices per step, with the first repeated to close the UV seam.
+            for (int i = 0; i <= n; i++)
+            {
+                float a = i * Mathf.PI * 2f / n;
+                var dir = new Vector3(Mathf.Sin(a), 0f, Mathf.Cos(a));
+                vertices.Add(dir * 0.5f + Vector3.down); normals.Add(dir); uvs.Add(new Vector2(i / (float)n, 0f));
+                vertices.Add(dir * 0.5f + Vector3.up); normals.Add(dir); uvs.Add(new Vector2(i / (float)n, 1f));
+            }
+            for (int i = 0; i < n; i++)
+            {
+                int b = i * 2;
+                // Clockwise as seen from outside, which is the side Unity draws.
+                triangles.AddRange(new[] { b, b + 3, b + 1, b, b + 2, b + 3 });
+            }
+
+            // Caps, as fans with the texture laid flat across them.
+            foreach (float y in new[] { 1f, -1f })
+            {
+                int centre = vertices.Count;
+                vertices.Add(new Vector3(0f, y, 0f)); normals.Add(Vector3.up * y); uvs.Add(new Vector2(0.5f, 0.5f));
+                for (int i = 0; i < n; i++)
+                {
+                    float a = i * Mathf.PI * 2f / n;
+                    var dir = new Vector3(Mathf.Sin(a), 0f, Mathf.Cos(a));
+                    vertices.Add(dir * 0.5f + new Vector3(0f, y, 0f)); normals.Add(Vector3.up * y);
+                    uvs.Add(new Vector2(0.5f + dir.x * 0.5f, 0.5f + dir.z * 0.5f));
+                }
+                for (int i = 0; i < n; i++)
+                {
+                    int p = centre + 1 + i, q = centre + 1 + (i + 1) % n;
+                    if (y > 0f) triangles.AddRange(new[] { centre, p, q });
+                    else triangles.AddRange(new[] { centre, q, p });
+                }
+            }
+
+            _roundCylinder = new Mesh { name = "RoundCylinder" };
+            _roundCylinder.SetVertices(vertices);
+            _roundCylinder.SetNormals(normals);
+            _roundCylinder.SetUVs(0, uvs);
+            _roundCylinder.SetTriangles(triangles, 0);
+            return _roundCylinder;
         }
 
         /// <summary>A flat disc facing up, with the texture laid once across it.</summary>
@@ -1060,7 +1173,7 @@ namespace GazeBoard.EditorTools
             return mat;
         }
 
-        private static Texture2D SaveTexture(string name, Texture2D source, bool repeat)
+        private static Texture2D SaveTexture(string name, Texture2D source, bool repeat, bool linear = false)
         {
             string path = $"{EnvFolder}/{name}.png";
             File.WriteAllBytes(path, source.EncodeToPNG());
@@ -1069,7 +1182,7 @@ namespace GazeBoard.EditorTools
 
             var importer = (TextureImporter)AssetImporter.GetAtPath(path);
             importer.textureType = TextureImporterType.Default;
-            importer.sRGBTexture = true;
+            importer.sRGBTexture = !linear; // linear for textures that hold numbers, not colours
             importer.mipmapEnabled = true;
             importer.wrapMode = repeat ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
             importer.filterMode = FilterMode.Trilinear;
@@ -1079,9 +1192,9 @@ namespace GazeBoard.EditorTools
             return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
 
-        private static Texture2D NewTexture(int width, int height, Func<int, int, Color> pixel)
+        private static Texture2D NewTexture(int width, int height, Func<int, int, Color> pixel, bool alpha = false)
         {
-            var texture = new Texture2D(width, height, TextureFormat.RGB24, false);
+            var texture = new Texture2D(width, height, alpha ? TextureFormat.RGBA32 : TextureFormat.RGB24, false);
             var pixels = new Color[width * height];
             for (int y = 0; y < height; y++)
             {
@@ -1181,8 +1294,36 @@ namespace GazeBoard.EditorTools
         }
 
         /// <summary>
+        /// Rock strata: bands of lighter and darker stone lying nearly level, their edges wandering,
+        /// crossed by a few dark vertical cracks. Tiles in both directions.
+        /// </summary>
+        private static Texture2D StrataTexture(int size)
+        {
+            // Band tones repeat every 16 bands so the top edge meets the bottom.
+            var tones = new float[16];
+            var rng = new System.Random(11);
+            for (int i = 0; i < tones.Length; i++) tones[i] = 0.62f + 0.38f * (float)rng.NextDouble();
+
+            return NewTexture(size, size, (x, y) =>
+            {
+                float wander = (TileNoise(x, y, size, 0.012f, 2f) - 0.5f) * 0.9f;
+                float band = (y / (float)size) * tones.Length + wander;
+                int index = ((Mathf.FloorToInt(band) % tones.Length) + tones.Length) % tones.Length;
+                float within = band - Mathf.Floor(band);
+                float value = tones[index];
+                if (within < 0.08f) value *= 0.72f; // the shadowed ledge under each band
+                float cracks = TileNoise(x * 3f, y * 0.25f, size, 0.05f, 8f);
+                if (cracks > 0.66f) value *= Mathf.Lerp(1f, 0.6f, (cracks - 0.66f) / 0.2f);
+                value *= 0.9f + 0.2f * TileNoise(x, y, size, 0.09f, 17f);
+                // Warm stone, slightly redder in the dark bands.
+                return new Color(value, value * (0.93f + 0.05f * tones[index]), value * (0.82f + 0.1f * tones[index]));
+            });
+        }
+
+        /// <summary>
         /// The sea from the waterline (v = 0) to the horizon (v = 1): turquoise shallows deepening
-        /// to blue, paling a little into the haze, with faint bands that read as swell.
+        /// to blue, paling a little into the haze. The swell is not painted in: the sea shader
+        /// draws it, moving.
         /// </summary>
         private static Texture2D OceanTexture(int width, int height)
         {
@@ -1196,32 +1337,167 @@ namespace GazeBoard.EditorTools
                 Color c = v < 0.03f ? Color.Lerp(shallow, mid, v / 0.03f)
                     : v < 0.14f ? Color.Lerp(mid, deep, (v - 0.03f) / 0.11f)
                     : Color.Lerp(deep, haze, Mathf.Pow((v - 0.14f) / 0.86f, 1.6f));
-                // Bands get finer with distance, as swell does toward the horizon.
-                float bands = Mathf.PerlinNoise(x * 0.07f, Mathf.Pow(v, 0.35f) * 150f);
-                float strength = Mathf.Lerp(0.10f, 0.03f, v);
-                return c * (1f - strength + bands * strength * 2f);
+                return c;
             });
         }
 
-        /// <summary>The waterline strip: wet sand (v = 0), a ragged line of foam, then the shallows (v = 1).</summary>
+        // ---- the moving sea ----
+
+        private const string SeaShaderName = "GazeBoard/CalmSea";
+
+        private static Material OceanMaterial()
+        {
+            Material mat = SeaMaterial("CalmOcean", SaveTexture("CalmTexOcean", OceanTexture(64, 1024), repeat: false));
+            if (mat.HasProperty("_Shore"))
+            {
+                mat.SetFloat("_Shore", 0f);
+                mat.SetFloat("_SrcBlend", (float)BlendMode.One);
+                mat.SetFloat("_DstBlend", (float)BlendMode.Zero);
+                mat.SetFloat("_ZWrite", 1f);
+                mat.renderQueue = (int)RenderQueue.Geometry;
+                mat.SetVector("_SizeMetres", new Vector4(SeaWidth, SeaDepth, 0f, 0f));
+                mat.SetFloat("_ShoreDistance", ShoreZ);
+            }
+            return mat;
+        }
+
+        private static Material ShoreMaterial()
+        {
+            Material mat = SeaMaterial("CalmShore", SaveTexture("CalmTexShore", ShoreTexture(1024, 128), repeat: false));
+            if (mat.HasProperty("_Shore"))
+            {
+                mat.SetFloat("_Shore", 1f);
+                // Blended over the beach, so wet sand darkens the real sand and the water's
+                // edge has no hard line where the strip ends.
+                mat.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
+                mat.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
+                mat.SetFloat("_ZWrite", 0f);
+                mat.renderQueue = (int)RenderQueue.Transparent;
+                // The strip is built flat at sea level; the shader raises its sand edge by this
+                // much, which lays it just above the sand's slope.
+                mat.SetFloat("_ShoreLift", 0.16f);
+                mat.SetVector("_SizeMetres", new Vector4(ShoreWidth, ShoreDepth, 0f, 0f));
+                // Where along the strip the sea plane begins, as a share of the strip's depth.
+                mat.SetFloat("_SeaEdge", (ShoreDepth / 2f - ShoreOffset) / ShoreDepth);
+            }
+            return mat;
+        }
+
+        /// <summary>
+        /// A material on the moving-sea shader. Should that shader be missing, the plain unlit
+        /// one stands in, which shows the same colours without the movement.
+        /// </summary>
+        private static Material SeaMaterial(string name, Texture2D colour)
+        {
+            Shader shader = Shader.Find(SeaShaderName);
+            if (shader == null)
+            {
+                Debug.LogWarning($"[GazeBoard] Shader {SeaShaderName} was not found; the sea will not move.");
+                return Mat(name, Color.white, colour, unlit: true);
+            }
+
+            string path = $"{EnvFolder}/{name}.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                mat = new Material(shader);
+                AssetDatabase.CreateAsset(mat, path);
+            }
+            else if (mat.shader != shader)
+            {
+                mat.shader = shader;
+            }
+            mat.SetTexture("_BaseMap", colour);
+            mat.SetTexture("_WaveMap", SaveTexture("CalmTexWaves", WaveTexture(256), repeat: true, linear: true));
+            // The sea and the shore strip share these, so a wave on one continues on the other.
+            mat.SetColor("_CrestColor", new Color(0.95f, 0.98f, 0.97f));
+            mat.SetFloat("_CrestStrength", 0.2f);
+            mat.SetFloat("_WaveLength", 15f);  // metres between waves, on average
+            mat.SetFloat("_WavePeriod", 8f);   // seconds between waves, on average
+            mat.SetFloat("_WaveFoam", 0.8f);
+            mat.SetFloat("_WaveReach", 50f);   // metres out where they start to show
+            mat.SetFloat("_RunUp", 1.3f);      // metres a strong wave runs up the sand
+            mat.enableInstancing = true;
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
+
+        /// <summary>
+        /// Wave heights that tile without a seam: each channel is a sum of sine waves that fit the
+        /// texture a whole number of times. Red and green are swell, with crests lying mostly
+        /// across the texture; blue is fine chop, for glitter.
+        /// </summary>
+        private static Texture2D WaveTexture(int size)
+        {
+            var random = new System.Random(11);
+            var channels = new float[3][];
+            for (int c = 0; c < 3; c++)
+            {
+                const int waves = 12;
+                var kx = new int[waves];
+                var ky = new int[waves];
+                var phase = new float[waves];
+                var amplitude = new float[waves];
+                for (int w = 0; w < waves; w++)
+                {
+                    if (c == 2)
+                    {
+                        kx[w] = random.Next(6, 21) * (random.Next(2) == 0 ? 1 : -1);
+                        ky[w] = random.Next(6, 21);
+                    }
+                    else
+                    {
+                        kx[w] = random.Next(0, c == 0 ? 4 : 5) * (random.Next(2) == 0 ? 1 : -1);
+                        ky[w] = random.Next(c == 0 ? 2 : 3, c == 0 ? 9 : 11);
+                    }
+                    phase[w] = (float)(random.NextDouble() * Math.PI * 2.0);
+                    amplitude[w] = 0.6f + (float)random.NextDouble() * 0.4f;
+                }
+
+                var values = new float[size * size];
+                float min = float.MaxValue, max = float.MinValue;
+                for (int y = 0; y < size; y++)
+                {
+                    for (int x = 0; x < size; x++)
+                    {
+                        float sum = 0f;
+                        for (int w = 0; w < waves; w++)
+                        {
+                            sum += amplitude[w] * Mathf.Sin((kx[w] * x + ky[w] * y) * (Mathf.PI * 2f / size) + phase[w]);
+                        }
+                        values[y * size + x] = sum;
+                        min = Mathf.Min(min, sum);
+                        max = Mathf.Max(max, sum);
+                    }
+                }
+                for (int i = 0; i < values.Length; i++) values[i] = Mathf.InverseLerp(min, max, values[i]);
+                channels[c] = values;
+            }
+            return NewTexture(size, size, (x, y) => new Color(channels[0][y * size + x], channels[1][y * size + x], channels[2][y * size + x]));
+        }
+
+        /// <summary>
+        /// The waterline strip: wet sand (v = 0), a ragged edge of foam, then the shallows
+        /// (v = 1). Alpha is how solid each part is: wet sand only darkens the beach under it.
+        /// The shader slides this up and down the strip as waves arrive, and expects the
+        /// water's edge at about v = 0.3.
+        /// </summary>
         private static Texture2D ShoreTexture(int width, int height)
         {
-            var wetSand = new Color(0.72f, 0.63f, 0.47f);
-            var foam = new Color(0.97f, 0.98f, 0.97f);
-            var shallow = new Color(0.44f, 0.82f, 0.78f);
+            var wetSand = new Color(0.58f, 0.49f, 0.36f, 0.55f);
+            var foam = new Color(0.97f, 0.98f, 0.97f, 1f);
+            var shallow = new Color(0.44f, 0.82f, 0.78f, 1f);
             return NewTexture(width, height, (x, y) =>
             {
                 float v = y / (height - 1f);
                 // The foam's edges wander along the beach instead of running ruler-straight.
-                float wander = (Mathf.PerlinNoise(x * 0.012f, 3f) - 0.5f) * 0.22f + (Mathf.PerlinNoise(x * 0.07f, 9f) - 0.5f) * 0.06f;
-                float inner = 0.34f + wander, outer = 0.52f + wander * 0.6f;
+                float wander = (Mathf.PerlinNoise(x * 0.012f, 3f) - 0.5f) * 0.12f + (Mathf.PerlinNoise(x * 0.07f, 9f) - 0.5f) * 0.05f;
+                float inner = 0.30f + wander, outer = 0.46f + wander * 0.6f;
                 if (v < inner - 0.05f) return wetSand;
                 if (v < inner) return Color.Lerp(wetSand, foam, (v - (inner - 0.05f)) / 0.05f);
-                if (v < outer) return Color.Lerp(foam, shallow, Mathf.Pow((v - inner) / (outer - inner), 0.7f) * 0.85f);
-                // A second, thinner line of foam further out.
-                float second = Mathf.Abs(v - (0.76f + wander * 0.5f));
-                return second < 0.02f ? Color.Lerp(foam, shallow, second / 0.02f) : shallow;
-            });
+                if (v < outer) return Color.Lerp(foam, shallow, Mathf.Pow((v - inner) / (outer - inner), 0.7f));
+                return shallow;
+            }, alpha: true);
         }
 
         /// <summary>Three simple prints: a sun over hills, an arch, and bands of colour.</summary>

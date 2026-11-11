@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using Meta.WitAi.TTS.Integrations;
 using Meta.WitAi.TTS.Utilities;
 using UnityEngine;
@@ -24,15 +26,23 @@ namespace GazeBoard.Speech
         {
             _speaker = speaker;
 
-            // Voice SDK hides all its logs in release builds; we need them on device while bringing this up.
-            Meta.WitAi.VLog.SuppressLogs = false;
+            // The Voice SDK's own logs print what is spoken, so they stay hidden in a release
+            // build and are shown only in development builds, where they help find speech problems.
+            Meta.WitAi.VLog.SuppressLogs = !LogText.Verbose;
 
             var ev = _speaker.Events;
-            ev.OnLoadBegin.AddListener((s, clip) => Debug.Log($"{Tag} Wit load begin: \"{clip.textToSpeak}\""));
-            ev.OnLoadFailed.AddListener((s, clip, error) => Debug.LogError($"{Tag} Wit load FAILED: \"{clip.textToSpeak}\" ({error})"));
-            ev.OnLoadSuccess.AddListener((s, clip) => Debug.Log($"{Tag} Wit load ok: \"{clip.textToSpeak}\""));
-            ev.OnPlaybackStart.AddListener((s, clip) => Debug.Log($"{Tag} Wit playback start: \"{clip.textToSpeak}\""));
-            ev.OnPlaybackComplete.AddListener((s, clip) => Debug.Log($"{Tag} Wit playback finished: \"{clip.textToSpeak}\""));
+            ev.OnLoadBegin.AddListener((s, clip) => Debug.Log($"{Tag} Wit load begin: {LogText.Of(clip.textToSpeak)}"));
+            ev.OnLoadFailed.AddListener((s, clip, error) =>
+            {
+                Debug.LogError($"{Tag} Wit load FAILED: {LogText.Of(clip.textToSpeak)} ({error})");
+                // Stopping a phrase to say the next one also ends its load; that is not a failure.
+                bool stopped = error != null && (error.IndexOf("cancel", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                                 error.IndexOf("abort", StringComparison.OrdinalIgnoreCase) >= 0);
+                if (!stopped) WhenLoadFailed?.Invoke(clip.textToSpeak);
+            });
+            ev.OnLoadSuccess.AddListener((s, clip) => Debug.Log($"{Tag} Wit load ok: {LogText.Of(clip.textToSpeak)}"));
+            ev.OnPlaybackStart.AddListener((s, clip) => Debug.Log($"{Tag} Wit playback start: {LogText.Of(clip.textToSpeak)}"));
+            ev.OnPlaybackComplete.AddListener((s, clip) => Debug.Log($"{Tag} Wit playback finished: {LogText.Of(clip.textToSpeak)}"));
 
             var service = _speaker.TTSService;
 
@@ -45,12 +55,49 @@ namespace GazeBoard.Speech
         public bool IsReady => _speaker != null && _speaker.TTSService != null;
         public bool IsSpeaking => _speaker != null && _speaker.IsActive;
 
+        /// <summary>Raised with the text when a phrase could not be loaded, so nothing was heard.</summary>
+        public event Action<string> WhenLoadFailed;
+
+        /// <summary>
+        /// True when a clip for this text is on the device, either baked into the app or kept from
+        /// an earlier time it was spoken online. Looks for the actual file, at the preset's speed,
+        /// which is the speed used with no connection.
+        /// </summary>
+        public bool HasOfflineClip(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text) || !IsReady) return false;
+            // The baked clips are still being copied out of the APK; do not refuse on a guess.
+            if (PreloadInstaller.UsesCopiedClips && !PreloadInstaller.Done) return true;
+            try
+            {
+                var service = _speaker.TTSService;
+                var preset = string.IsNullOrEmpty(_speaker.VoiceID) ? null : service.GetPresetVoiceSettings(_speaker.VoiceID);
+                Meta.WitAi.TTS.Data.TTSVoiceSettings voice = preset != null ? preset : _speaker.customWitVoiceSettings;
+
+                if (ClipExists(service, text, voice, PersistentCache)) return true;
+                return !PreloadInstaller.UsesCopiedClips && ClipExists(service, text, voice, PreloadCache);
+            }
+            catch (Exception e)
+            {
+                // Unknown is not "missing": let the phrase try to play rather than block it.
+                Debug.LogWarning($"{Tag} Could not check for an offline clip: {e.Message}");
+                return true;
+            }
+        }
+
+        private static bool ClipExists(Meta.WitAi.TTS.TTSService service, string text,
+            Meta.WitAi.TTS.Data.TTSVoiceSettings voice, Meta.WitAi.TTS.Data.TTSDiskCacheSettings cache)
+        {
+            string path = service.GetDiskCachePath(text, null, voice, cache);
+            return !string.IsNullOrEmpty(path) && File.Exists(path);
+        }
+
         public void Speak(string text, bool interrupt = true, bool userText = false)
         {
             if (string.IsNullOrWhiteSpace(text)) return;
             if (!IsReady)
             {
-                Debug.LogError($"{Tag} Wit speaker has no TTSService; cannot speak \"{text}\"");
+                Debug.LogError($"{Tag} Wit speaker has no TTSService; cannot speak {LogText.Of(text)}");
                 return;
             }
 
@@ -66,7 +113,7 @@ namespace GazeBoard.Speech
             bool dropOverride = offline && _override != null;
             if (dropOverride) _speaker.ClearVoiceOverride();
 
-            Debug.Log($"{Tag} Wit speak request: \"{text}\" (interrupt={interrupt}, userText={userText}" +
+            Debug.Log($"{Tag} Wit speak request: {LogText.Of(text)} (interrupt={interrupt}, userText={userText}" +
                       $"{(dropOverride ? ", offline: preset speed" : "")})");
             if (interrupt) _speaker.Speak(text, cache);
             else _speaker.SpeakQueued(text, cache);

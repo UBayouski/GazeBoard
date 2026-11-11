@@ -32,6 +32,10 @@ namespace GazeBoard.Board
         private const float MinGazePitch = -30f;
         private const float MaxGazePitch = 15f;
 
+        // Head heights above the tracking floor, in metres. See AlignRoom.
+        private const float MinPlausibleEyeHeight = 0.95f;
+        private const float AssumedEyeHeight = 1.2f;
+
         // The Recenter tile waits for the head to stay within this angle for this long.
         private const float SteadyAngle = 2.5f;
         private const float SteadySeconds = 0.5f;
@@ -142,13 +146,19 @@ namespace GazeBoard.Board
 
         // ---- public actions ----
 
-        /// <summary>Places the board in front of where the head points right now.</summary>
-        public void Recenter(bool snap = false)
+        /// <summary>
+        /// Places the board in front of where the head points right now. alignRoom also turns the
+        /// calm room to face that way: right when the headset has just been put on, wrong for a
+        /// Recenter by the user, who is moving the board within a room that should stay put.
+        /// </summary>
+        public void Recenter(bool snap = false, bool alignRoom = false)
         {
             Transform head = Head();
             if (head == null) return;
             PlaceInFront(head.position, GazeDirection(head), snap);
-            AlignRoom(head.position, FlatForward(head));
+            if (alignRoom) AlignRoom(head.position, FlatForward(head));
+            Debug.Log($"[GazeBoard] Board placed. Head is {head.position.y:0.00} m above the tracking floor " +
+                      $"(room floor at {(_room != null ? _room.position.y : 0f):0.00} m), room aligned: {alignRoom}.");
         }
 
         /// <summary>
@@ -221,7 +231,7 @@ namespace GazeBoard.Board
 
             // Put on mid-session: let the user settle before the board moves.
             if (!first) yield return new WaitForSecondsRealtime(0.6f);
-            Recenter(snap: true);
+            Recenter(snap: true, alignRoom: true);
             _placedOnce = true;
             SetVisible(true);
             _pending = null;
@@ -333,8 +343,16 @@ namespace GazeBoard.Board
                 _roomHomeRotation = _room.rotation;
             }
 
+            // The room's floor goes on the headset's floor, unless that floor is plainly wrong. A
+            // headset with no boundary set up guesses its floor height and can be most of a metre
+            // out, which leaves the user standing waist-deep in the room. No seated adult's eyes
+            // are this close to the ground, so below it the floor is put a seated eye height
+            // under the head instead.
+            float floorY = 0f;
+            if (headPosition.y < MinPlausibleEyeHeight) floorY = headPosition.y - AssumedEyeHeight;
+
             Quaternion yaw = Quaternion.LookRotation(flatDirection, Vector3.up);
-            Vector3 position = new Vector3(headPosition.x, 0f, headPosition.z) + yaw * _roomHomePosition;
+            Vector3 position = new Vector3(headPosition.x, floorY, headPosition.z) + yaw * _roomHomePosition;
             _room.SetPositionAndRotation(position, yaw * _roomHomeRotation);
         }
 
@@ -733,7 +751,7 @@ namespace GazeBoard.Board
         }
 
         /// <summary>A white capsule, sliced so it stretches to any width.</summary>
-        private static Sprite PillSprite()
+        internal static Sprite PillSprite()
         {
             const int size = 32;
             float radius = size * 0.5f;

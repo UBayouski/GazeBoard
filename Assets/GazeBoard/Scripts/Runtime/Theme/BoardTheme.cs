@@ -24,25 +24,30 @@ namespace GazeBoard.Theme
         public Color sentenceText = Color.white;
         public Color gazeCursor = new Color(1f, 1f, 1f, 0.55f);
 
+        // The Calm colours are chosen so white text reaches a contrast ratio of at least 4.5:1 on
+        // every tile at rest and 3.5:1 while it is gazed (WCAG relative luminance). People is a
+        // dark gold rather than a yellow for the same reason, so every category has white text.
         [Header("Tiles by role")]
-        public Color socialTile = new Color(0.56f, 0.36f, 0.72f);
-        public Color needsTile = new Color(0.82f, 0.47f, 0.22f);
-        public Color feelingsTile = new Color(0.24f, 0.50f, 0.80f);
-        public Color peopleTile = new Color(0.80f, 0.66f, 0.22f);
-        public Color personalTile = new Color(0.20f, 0.58f, 0.54f);
-        public Color letterTile = new Color(0.30f, 0.34f, 0.40f);
+        public Color socialTile = new Color(0.53f, 0.33f, 0.69f);
+        public Color needsTile = new Color(0.70f, 0.38f, 0.14f);
+        public Color feelingsTile = new Color(0.20f, 0.44f, 0.74f);
+        public Color peopleTile = new Color(0.55f, 0.44f, 0.10f);
+        public Color personalTile = new Color(0.13f, 0.47f, 0.44f);
+        // A slate with some blue in it rather than a flat grey: a grey so close to the board
+        // barely changed between the open and the resting category tile.
+        public Color letterTile = new Color(0.36f, 0.41f, 0.50f);
 
         [Header("Tiles by action")]
-        public Color actionTile = new Color(0.36f, 0.40f, 0.47f);
-        public Color speakTile = new Color(0.20f, 0.60f, 0.40f);
-        public Color yesTile = new Color(0.22f, 0.60f, 0.38f);
+        public Color actionTile = new Color(0.34f, 0.38f, 0.45f);
+        public Color speakTile = new Color(0.13f, 0.48f, 0.31f);
+        public Color yesTile = new Color(0.15f, 0.48f, 0.29f);
         public Color noTile = new Color(0.72f, 0.28f, 0.28f);
-        public Color helpTile = new Color(0.80f, 0.34f, 0.20f);
+        public Color helpTile = new Color(0.74f, 0.29f, 0.16f);
         public Color infoTile = new Color(0.17f, 0.19f, 0.23f);
-        public Color recentTile = new Color(0.28f, 0.42f, 0.44f);
+        public Color recentTile = new Color(0.26f, 0.40f, 0.42f);
         public Color tileText = Color.white;
         [Tooltip("Multiplier applied to a tile colour while gazed or hovered.")]
-        public float highlightBrightness = 1.25f;
+        public float highlightBrightness = 1.15f;
 
         [Header("Tile shape")]
         public bool roundedCorners = true;
@@ -69,15 +74,53 @@ namespace GazeBoard.Theme
         /// <summary>Text colour that stays readable on the given tile colour.</summary>
         public Color TextFor(Color tile)
         {
-            float luminance = 0.2126f * tile.r + 0.7152f * tile.g + 0.0722f * tile.b;
-            float textLuminance = 0.2126f * tileText.r + 0.7152f * tileText.g + 0.0722f * tileText.b;
-            bool clash = Mathf.Abs(luminance - textLuminance) < 0.35f;
-            if (!clash) return tileText;
-            return luminance > 0.5f ? new Color(0.08f, 0.08f, 0.08f) : Color.white;
+            // The theme's own text colour wherever it is readable enough; otherwise whichever of
+            // near-black and white contrasts more with this tile.
+            if (Contrast(tile, tileText) >= MinTextContrast) return tileText;
+            var dark = new Color(0.08f, 0.08f, 0.08f);
+            return Contrast(tile, dark) >= Contrast(tile, Color.white) ? dark : Color.white;
         }
+
+        /// <summary>Contrast ratio the theme text must reach on a tile before another colour is used.</summary>
+        public const float MinTextContrast = 4.5f;
+
+        /// <summary>WCAG contrast ratio between two opaque colours, from 1 (same) to 21 (black on white).</summary>
+        public static float Contrast(Color a, Color b)
+        {
+            float la = Luminance(a), lb = Luminance(b);
+            return (Mathf.Max(la, lb) + 0.05f) / (Mathf.Min(la, lb) + 0.05f);
+        }
+
+        /// <summary>WCAG relative luminance of an sRGB colour.</summary>
+        public static float Luminance(Color c)
+        {
+            return 0.2126f * Linear(c.r) + 0.7152f * Linear(c.g) + 0.0722f * Linear(c.b);
+        }
+
+        private static float Linear(float channel) =>
+            channel <= 0.04045f ? channel / 12.92f : Mathf.Pow((channel + 0.055f) / 1.055f, 2.4f);
 
         [Tooltip("Added to a tile colour while gazed or hovered. Needed for black tiles, which a multiplier cannot brighten.")]
         public float highlightLift = 0f;
+
+        [Tooltip("The open category's tile is lightened until it is at least this bright (WCAG relative luminance), which is bright enough to carry dark text. 0 leaves it at the gazed colour.")]
+        public float openCategoryLuminance = 0.26f;
+
+        /// <summary>
+        /// Fill of the category that is open (and of the settings tile while settings are open).
+        /// In a theme with light text it is bright enough that its label turns dark, so the open
+        /// category stands apart by fill and by text, whatever its own colour is. A grey tile
+        /// brightened only by the gaze multiplier stayed too dark for that.
+        /// </summary>
+        public Color OpenCategory(Color role)
+        {
+            Color c = Highlight(role);
+            for (int i = 0; i < 25 && Luminance(c) < openCategoryLuminance; i++)
+            {
+                c = new Color(Mathf.Lerp(c.r, 1f, 0.04f), Mathf.Lerp(c.g, 1f, 0.04f), Mathf.Lerp(c.b, 1f, 0.04f), c.a);
+            }
+            return c;
+        }
 
         public Color Highlight(Color c) => new Color(
             Mathf.Clamp01(c.r * highlightBrightness + highlightLift),
@@ -120,6 +163,7 @@ namespace GazeBoard.Theme
             warm.recentTile = new Color(0.70f, 0.82f, 0.78f);
             warm.tileText = new Color(0.22f, 0.15f, 0.12f);
             warm.highlightBrightness = 1.10f;
+            warm.openCategoryLuminance = 0f; // text is dark already
             warm.roundedCorners = true;
             warm.outlineColor = new Color(1f, 1f, 1f, 0.55f);
             warm.outlineWidth = 2f;
@@ -157,6 +201,7 @@ namespace GazeBoard.Theme
             // Pure black times any multiplier stays black, so the gazed tile is lifted to grey instead.
             contrast.highlightBrightness = 1f;
             contrast.highlightLift = 0.30f;
+            contrast.openCategoryLuminance = 0f; // the white outline marks the open category
             contrast.roundedCorners = false;
             contrast.outlineColor = new Color(1f, 1f, 0.4f, 1f);
             contrast.outlineWidth = 5f;

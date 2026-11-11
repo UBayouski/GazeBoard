@@ -40,6 +40,11 @@ namespace GazeBoard.Speech
         public const string PhoneOff = "Phone alerts off";
         public const string PhoneTestSent = "Test message sent to your phone";
         public const string PhoneSendFailed = "Could not reach your phone. Check the internet connection.";
+        public const string PhoneNewCode = "New phone code. Pair your phone again.";
+
+        // Said when a sentence cannot be spoken: no connection and no clip of it on the device.
+        // The listener hears why nothing came, and can read the sentence on the board instead.
+        public const string CannotSpeakNow = "No internet. I cannot say that right now.";
 
         // Speak-on-select setting.
         public const string SpeakTilesOn = "Tiles speak when chosen";
@@ -82,6 +87,8 @@ namespace GazeBoard.Speech
             yield return PhoneOff;
             yield return PhoneTestSent;
             yield return PhoneSendFailed;
+            yield return PhoneNewCode;
+            yield return CannotSpeakNow;
             yield return SpeakTilesOn;
             yield return SpeakTilesOff;
             yield return BoardRecenterPrompt;

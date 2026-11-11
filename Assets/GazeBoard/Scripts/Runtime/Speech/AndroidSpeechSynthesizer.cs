@@ -116,6 +116,9 @@ namespace GazeBoard.Speech
             }
         }
 
+        /// <summary>This engine runs on the device and needs no connection.</summary>
+        public bool HasOfflineClip(string text) => true;
+
         public void Stop()
         {
             if (!IsReady) return;

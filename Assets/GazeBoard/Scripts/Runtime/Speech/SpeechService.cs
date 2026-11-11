@@ -41,6 +41,41 @@ namespace GazeBoard.Speech
         public static bool IsReady => _instance != null && _instance._synth != null && _instance._synth.IsReady;
         public static bool IsSpeaking => _instance != null && _instance._synth != null && _instance._synth.IsSpeaking;
 
+        /// <summary>True when the device reports no network at all.</summary>
+        public static bool IsOffline => Application.internetReachability == NetworkReachability.NotReachable;
+
+        /// <summary>
+        /// Raised with the text when something could not be spoken: there is no connection and no
+        /// clip of it on the device, or the voice service failed. Nothing was heard for that text.
+        /// </summary>
+        public static event Action<string> WhenUnavailable;
+
+        /// <summary>True when the text can be spoken with no connection (a clip is on the device).</summary>
+        public static bool HasOfflineClip(string text)
+        {
+            var synth = Instance._synth;
+            return synth != null && synth.HasOfflineClip(text);
+        }
+
+        /// <summary>
+        /// Tells the user that the text could not be spoken, instead of staying silent or saying
+        /// only part of it: raises WhenUnavailable for the board to show, and says so aloud when
+        /// that message itself is on the device.
+        /// </summary>
+        public static void ReportUnavailable(string text)
+        {
+            Debug.LogWarning($"[GazeBoard.Speech] Cannot speak {LogText.Of(text)}: no connection and no clip on the device, or the voice service failed.");
+            Instance._lastSpoken = text;
+            Instance._lastParts = null;
+            WhenUnavailable?.Invoke(text);
+
+            var synth = Instance._synth;
+            if (synth == null || text == SpokenPhrases.CannotSpeakNow) return;
+            if (!synth.HasOfflineClip(SpokenPhrases.CannotSpeakNow)) return;
+            if (Instance.AlertPhrasePlaying) return; // the help call matters more than this notice
+            synth.Speak(SpokenPhrases.CannotSpeakNow, interrupt: true, userText: false);
+        }
+
         /// <summary>The last text handed to the engine, for the Repeat tile. Null before anything was spoken.</summary>
         public static string LastSpoken => _instance != null ? _instance._lastSpoken : null;
 
@@ -67,10 +102,17 @@ namespace GazeBoard.Speech
         {
             if (string.IsNullOrWhiteSpace(text)) return;
             var synth = Instance._synth;
-            Debug.Log($"[GazeBoard.Speech] Speak(\"{text}\") via {(synth != null ? synth.GetType().Name : "no backend")}, ready={synth?.IsReady}");
+            Debug.Log($"[GazeBoard.Speech] Speak({LogText.Of(text)}) via {(synth != null ? synth.GetType().Name : "no backend")}, ready={synth?.IsReady}");
             Instance._lastSpoken = text;
             Instance._lastWasUserText = userText;
             Instance._lastParts = null;
+            // With no connection only what is already on the device can be heard. Say so rather
+            // than hand the engine a request that fails without a sound.
+            if (IsOffline && synth != null && !synth.HasOfflineClip(text))
+            {
+                ReportUnavailable(text);
+                return;
+            }
             // While the alert phrase itself is playing, queue behind it instead of cutting it off.
             if (interrupt && Instance.AlertPhrasePlaying) interrupt = false;
             synth?.Speak(text, interrupt, userText);
@@ -154,7 +196,10 @@ namespace GazeBoard.Speech
             var witSpeaker = FindFirstObjectByType<Meta.WitAi.TTS.Utilities.TTSSpeaker>(FindObjectsInactive.Exclude);
             if (witSpeaker != null)
             {
-                _synth = new WitSpeechSynthesizer(witSpeaker);
+                var wit = new WitSpeechSynthesizer(witSpeaker);
+                // A connection that is there but does not reach the voice service fails here.
+                wit.WhenLoadFailed += ReportUnavailable;
+                _synth = wit;
             }
             else
             {

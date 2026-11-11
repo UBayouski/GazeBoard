@@ -292,8 +292,16 @@ MonoBehaviour:
         textToSpeak: More
         downloaded: 1
         downloadProgress: 0
+      - clipID: tts_n680832169
+        textToSpeak: New phone code. Pair your phone again.
+        downloaded: 1
+        downloadProgress: 0
       - clipID: tts_p1211311800
         textToSpeak: No
+        downloaded: 1
+        downloadProgress: 0
+      - clipID: tts_n499693445
+        textToSpeak: No internet. I cannot say that right now.
         downloaded: 1
         downloadProgress: 0
       - clipID: tts_p1409773628
@@ -314,7 +322,7 @@ MonoBehaviour:
         downloadProgress: 0
       - clipID: tts_n359574349
         textToSpeak: Phone alerts off
-        downloaded: 0
+        downloaded: 1
         downloadProgress: 0
       - clipID: tts_n568754699
         textToSpeak: Phone alerts on

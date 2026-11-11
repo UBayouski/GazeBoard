@@ -78,6 +78,7 @@ namespace GazeBoard.Board
         BoardReset,
         /// <summary>Shows the previous page of the current category.</summary>
         PrevPage,
+        PhoneNewCode,
     }
 
     /// <summary>

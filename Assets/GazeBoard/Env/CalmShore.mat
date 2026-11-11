@@ -21,17 +21,17 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: CalmShore
-  m_Shader: {fileID: 4800000, guid: 650dd9526735d5b46b79224bc6e94025, type: 3}
+  m_Shader: {fileID: 4800000, guid: cd608726ecdbca44483aada00f9596e4, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
-  m_InvalidKeywords: []
+  m_InvalidKeywords:
+  - _SHORE_ON
   m_LightmapFlags: 4
-  m_EnableInstancingVariants: 0
+  m_EnableInstancingVariants: 1
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
-  stringTagMap:
-    RenderType: Opaque
+  m_CustomRenderQueue: 3000
+  stringTagMap: {}
   disabledShaderPasses:
   - MOTIONVECTORS
   m_LockedProperties: 
@@ -46,6 +46,10 @@ Material:
         m_Texture: {fileID: 2800000, guid: 0f937ae3eaa178347bb1da956ffc0244, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _WaveMap:
+        m_Texture: {fileID: 2800000, guid: 30168b55ee34b1e4b984a80e3d69ffe3, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
     - _AddPrecomputedVelocity: 0
@@ -53,19 +57,38 @@ Material:
     - _AlphaToMask: 0
     - _Blend: 0
     - _BlendOp: 0
+    - _CrestStrength: 0.2
     - _Cull: 2
     - _Cutoff: 0.5
-    - _DstBlend: 0
+    - _DstBlend: 10
     - _DstBlendAlpha: 0
+    - _GlitterStrength: 0.35
     - _QueueOffset: 0
+    - _RunUp: 1.3
     - _SampleGI: 0
-    - _SrcBlend: 1
+    - _SeaEdge: 0.375
+    - _Shore: 1
+    - _ShoreDistance: 24
+    - _ShoreLift: 0.16
+    - _SrcBlend: 5
     - _SrcBlendAlpha: 1
+    - _SunSlope: 0.375
     - _Surface: 0
+    - _SwashMetres: 0.45
+    - _SwashSpeed: 0.7
+    - _SwellSpeed: 0.035
+    - _SwellStrength: 0.2
+    - _WaveFoam: 0.8
+    - _WaveLength: 15
+    - _WavePeriod: 8
+    - _WaveReach: 50
     - _XRMotionVectorsPass: 1
-    - _ZWrite: 1
+    - _ZWrite: 0
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _CrestColor: {r: 0.95, g: 0.98, b: 0.97, a: 1}
+    - _GlitterColor: {r: 1, g: 0.95, b: 0.82, a: 1}
+    - _SizeMetres: {r: 160, g: 3.2, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

@@ -62,8 +62,9 @@ namespace GazeBoard
         }
 
         /// <summary>
-        /// If true this tile dwells even when DwellSettings.Enabled is false. Used by the tile that
-        /// turns dwell back on, so a gaze-only user can never lock themselves out.
+        /// If true this tile dwells even when DwellSettings.Enabled is false. Used by the Settings
+        /// tile and by the tile that turns dwell back on, so the way back to gaze selection can
+        /// always be walked by gaze alone, also after a restart.
         /// </summary>
         public bool AlwaysDwell { get; set; }
 

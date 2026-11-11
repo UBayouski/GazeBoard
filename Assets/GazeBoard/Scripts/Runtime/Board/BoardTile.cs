@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -128,6 +128,40 @@ namespace GazeBoard.Board
             colors.pressedColor = highlighted;
             colors.disabledColor = normal;
             _button.colors = colors;
+        }
+
+        /// <summary>A quick swell and settle, as a sign the tile was chosen.</summary>
+        public void Pulse()
+        {
+            if (!isActiveAndEnabled) return;
+            if (_pulse != null) StopCoroutine(_pulse);
+            _pulse = StartCoroutine(PulseRoutine());
+        }
+
+        private Coroutine _pulse;
+
+        private System.Collections.IEnumerator PulseRoutine()
+        {
+            const float up = 0.07f, down = 0.18f, peak = 1.07f;
+            float elapsed = 0f;
+            while (elapsed < up + down)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float s = elapsed < up
+                    ? Mathf.Lerp(1f, peak, elapsed / up)
+                    : Mathf.Lerp(peak, 1f, Mathf.SmoothStep(0f, 1f, (elapsed - up) / down));
+                transform.localScale = new Vector3(s, s, 1f);
+                yield return null;
+            }
+            transform.localScale = Vector3.one;
+            _pulse = null;
+        }
+
+        private void OnDisable()
+        {
+            // A pulse cut short must not leave the tile enlarged.
+            _pulse = null;
+            transform.localScale = Vector3.one;
         }
 
         /// <summary>Read-only tiles ignore gaze and pinch entirely.</summary>
