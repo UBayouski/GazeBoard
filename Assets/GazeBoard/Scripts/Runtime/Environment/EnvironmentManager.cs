@@ -29,6 +29,9 @@ namespace GazeBoard.Environment
         public event Action<EnvironmentMode> WhenChanged;
         public EnvironmentMode Mode { get; private set; }
 
+        /// <summary>Root of the virtual room, so it can be turned to face the way the user sits.</summary>
+        public Transform RoomRoot => _roomRoot != null ? _roomRoot.transform : null;
+
         private void Awake()
         {
             Instance = this;

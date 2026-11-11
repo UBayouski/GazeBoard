@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using GazeBoard.Environment;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -58,10 +58,11 @@ namespace GazeBoard.EditorTools
             centerCamera.clearFlags = CameraClearFlags.SolidColor;
             centerCamera.backgroundColor = new Color(0f, 0f, 0f, 0f);
 
-            // 3. Calm room from primitives, inactive until the user switches to it.
+            // 3. Calm room, inactive until the user switches to it. Its lighting is baked separately
+            //    (GazeBoard > Calm Room > Build and Bake Lighting).
             Directory.CreateDirectory(EnvFolder);
-            Material skybox = CreateSkybox();
-            GameObject room = BuildRoom();
+            Material skybox = CalmRoomBuilder.CreateSkybox();
+            GameObject room = CalmRoomBuilder.Build();
 
             // 4. Manager.
             GameObject managerGo = GameObject.Find(ManagerName);
@@ -99,92 +100,6 @@ namespace GazeBoard.EditorTools
                 if (c.enabled && c.CompareTag("MainCamera")) return c;
             }
             return Camera.main;
-        }
-
-        private static Material CreateSkybox()
-        {
-            string path = EnvFolder + "/CalmSkybox.mat";
-            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (mat == null)
-            {
-                mat = new Material(Shader.Find("Skybox/Procedural"));
-                AssetDatabase.CreateAsset(mat, path);
-            }
-            mat.SetFloat("_SunSize", 0f);
-            mat.SetFloat("_SunSizeConvergence", 1f);
-            mat.SetFloat("_AtmosphereThickness", 0.55f);
-            mat.SetColor("_SkyTint", new Color(0.55f, 0.62f, 0.72f));
-            mat.SetColor("_GroundColor", new Color(0.16f, 0.17f, 0.20f));
-            mat.SetFloat("_Exposure", 0.85f);
-            EditorUtility.SetDirty(mat);
-            return mat;
-        }
-
-        private static GameObject BuildRoom()
-        {
-            // GameObject.Find skips inactive objects and the room is inactive by default, so look
-            // through every root object instead; otherwise each run would leave a duplicate room.
-            foreach (GameObject rootObject in SceneManager.GetActiveScene().GetRootGameObjects())
-            {
-                if (rootObject.name == RoomRootName) Undo.DestroyObjectImmediate(rootObject);
-            }
-
-            var root = new GameObject(RoomRootName);
-            Undo.RegisterCreatedObjectUndo(root, "Create calm room");
-
-            Material floor = LitMaterial("CalmFloor", new Color(0.20f, 0.21f, 0.24f), 0.15f);
-            Material rug = LitMaterial("CalmRug", new Color(0.27f, 0.30f, 0.34f), 0.05f);
-            Material wall = LitMaterial("CalmWall", new Color(0.78f, 0.80f, 0.83f), 0.05f);
-            Material accent = LitMaterial("CalmAccent", new Color(0.46f, 0.60f, 0.66f), 0.2f);
-
-            // Floor at tracking-space ground level.
-            Primitive(root, PrimitiveType.Plane, "Floor", new Vector3(0f, 0f, 0f), Vector3.zero, new Vector3(3f, 1f, 3f), floor);
-            // Soft rug under the user.
-            Primitive(root, PrimitiveType.Cylinder, "Rug", new Vector3(0f, 0.005f, 0.4f), Vector3.zero, new Vector3(3.2f, 0.005f, 3.2f), rug);
-
-            // Four walls, 4 m away, 3 m high, open to the sky.
-            const float d = 4.5f, h = 3f;
-            Primitive(root, PrimitiveType.Cube, "Wall N", new Vector3(0f, h / 2f, d), Vector3.zero, new Vector3(2 * d, h, 0.1f), wall);
-            Primitive(root, PrimitiveType.Cube, "Wall S", new Vector3(0f, h / 2f, -d), Vector3.zero, new Vector3(2 * d, h, 0.1f), wall);
-            Primitive(root, PrimitiveType.Cube, "Wall E", new Vector3(d, h / 2f, 0f), Vector3.zero, new Vector3(0.1f, h, 2 * d), wall);
-            Primitive(root, PrimitiveType.Cube, "Wall W", new Vector3(-d, h / 2f, 0f), Vector3.zero, new Vector3(0.1f, h, 2 * d), wall);
-
-            // A low accent band along the walls and two soft columns beside the board.
-            Primitive(root, PrimitiveType.Cube, "Band N", new Vector3(0f, 0.6f, d - 0.06f), Vector3.zero, new Vector3(2 * d, 0.08f, 0.02f), accent);
-            Primitive(root, PrimitiveType.Capsule, "Column L", new Vector3(-1.6f, 1.2f, 1.6f), Vector3.zero, new Vector3(0.25f, 1.2f, 0.25f), accent);
-            Primitive(root, PrimitiveType.Capsule, "Column R", new Vector3(1.6f, 1.2f, 1.6f), Vector3.zero, new Vector3(0.25f, 1.2f, 0.25f), accent);
-
-            root.SetActive(false);
-            return root;
-        }
-
-        private static void Primitive(GameObject parent, PrimitiveType type, string name, Vector3 position, Vector3 euler, Vector3 scale, Material material)
-        {
-            GameObject go = GameObject.CreatePrimitive(type);
-            go.name = name;
-            go.transform.SetParent(parent.transform, false);
-            go.transform.localPosition = position;
-            go.transform.localEulerAngles = euler;
-            go.transform.localScale = scale;
-            go.GetComponent<Renderer>().sharedMaterial = material;
-            Object.DestroyImmediate(go.GetComponent<Collider>()); // decoration only
-        }
-
-        private static Material LitMaterial(string name, Color color, float smoothness)
-        {
-            string path = $"{EnvFolder}/{name}.mat";
-            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (mat == null)
-            {
-                Shader shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
-                mat = new Material(shader);
-                AssetDatabase.CreateAsset(mat, path);
-            }
-            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", color);
-            if (mat.HasProperty("_Color")) mat.SetColor("_Color", color);
-            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", smoothness);
-            EditorUtility.SetDirty(mat);
-            return mat;
         }
     }
 }

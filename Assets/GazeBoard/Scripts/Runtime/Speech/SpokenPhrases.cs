@@ -15,7 +15,9 @@ namespace GazeBoard.Speech
         public const string GazeSelectOff = "Gaze select off. Pinch to choose tiles.";
 
         public const string EnvironmentPassthrough = "Showing your room";
-        public const string EnvironmentRoom = "Showing the calm room";
+        // Worded so it does not end on "room": this voice drops that word into a low growl at the
+        // end of a sentence ("Showing the calm room" and "Showing the virtual room" both did).
+        public const string EnvironmentRoom = "Showing the beach house";
         public static readonly string[] ThemeNames = { "Calm theme", "Warm theme", "High contrast theme" };
 
         // Fixed row under the grid.
@@ -38,6 +40,20 @@ namespace GazeBoard.Speech
         public const string PhoneOff = "Phone alerts off";
         public const string PhoneTestSent = "Test message sent to your phone";
         public const string PhoneSendFailed = "Could not reach your phone. Check the internet connection.";
+
+        // Speak-on-select setting.
+        public const string SpeakTilesOn = "Tiles speak when chosen";
+        public const string SpeakTilesOff = "Tiles are silent. Choose Speak to say the sentence.";
+
+        // Board placement.
+        public const string BoardRecenterPrompt = "Look where you want the board.";
+        public const string BoardMoved = "Board moved";
+        public const string BoardCloser = "Closer";
+        public const string BoardFarther = "Farther";
+        public const string BoardSmaller = "Smaller";
+        public const string BoardBigger = "Bigger";
+        public const string BoardReset = "Board reset";
+
         public const string MineEmptyHint = "Spell a sentence, then choose Save. It will appear here.";
 
         public static string DwellChanged(float seconds) => $"Dwell {seconds:0.0} seconds";
@@ -66,6 +82,15 @@ namespace GazeBoard.Speech
             yield return PhoneOff;
             yield return PhoneTestSent;
             yield return PhoneSendFailed;
+            yield return SpeakTilesOn;
+            yield return SpeakTilesOff;
+            yield return BoardRecenterPrompt;
+            yield return BoardMoved;
+            yield return BoardCloser;
+            yield return BoardFarther;
+            yield return BoardSmaller;
+            yield return BoardBigger;
+            yield return BoardReset;
 
             // Dwell moves in 0.2 s steps between the configured limits.
             for (float s = DwellSettings.MinDwellSeconds; s <= DwellSettings.MaxDwellSeconds + 0.001f; s += 0.2f)

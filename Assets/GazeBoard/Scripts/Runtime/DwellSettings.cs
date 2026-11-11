@@ -37,6 +37,12 @@ namespace GazeBoard
             }
         }
 
+        /// <summary>
+        /// Pauses every dwell for a moment, including tiles that always dwell. Not persisted.
+        /// Set while the board itself is moving, when the gaze crosses tiles without meaning to.
+        /// </summary>
+        public static bool Suspended { get; set; }
+
         /// <summary>When false, tiles only respond to direct pinch or click.</summary>
         public static bool Enabled
         {

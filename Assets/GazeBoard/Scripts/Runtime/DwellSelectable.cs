@@ -127,7 +127,7 @@ namespace GazeBoard
                 return; // progress is held, not advanced
             }
 
-            if ((!DwellSettings.Enabled && !AlwaysDwell) || !_armed || !IsHovered || !IsInteractable())
+            if (DwellSettings.Suspended || (!DwellSettings.Enabled && !AlwaysDwell) || !_armed || !IsHovered || !IsInteractable())
             {
                 if (_elapsed > 0f) ResetDwell();
                 return;

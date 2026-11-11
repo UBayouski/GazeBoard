@@ -17,6 +17,9 @@ namespace GazeBoard.Speech
         // the preset speed, so offline we fall back to it.
         private TTSWitVoiceSettings _override;
 
+        // The voice is the preset on the scene's TTSSpeaker. Change it with GazeBoard > Voice,
+        // which also bakes the clips again: the app's voice and the baked clips must match, or
+        // no baked clip is ever found.
         public WitSpeechSynthesizer(TTSSpeaker speaker)
         {
             _speaker = speaker;

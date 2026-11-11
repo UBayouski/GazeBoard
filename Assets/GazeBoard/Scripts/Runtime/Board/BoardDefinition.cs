@@ -66,6 +66,18 @@ namespace GazeBoard.Board
         PhoneCode,
         /// <summary>Sends a test message to the paired phone.</summary>
         PhoneTest,
+        /// <summary>Toggles whether phrase tiles are spoken when chosen or only build the sentence.</summary>
+        SpeakTilesToggle,
+        /// <summary>Board placement: after a short pause, moves the board in front of where the user looks.</summary>
+        BoardRecenter,
+        BoardCloser,
+        BoardFarther,
+        BoardSmaller,
+        BoardBigger,
+        /// <summary>Default distance, height and size, in front of the user.</summary>
+        BoardReset,
+        /// <summary>Shows the previous page of the current category.</summary>
+        PrevPage,
     }
 
     /// <summary>

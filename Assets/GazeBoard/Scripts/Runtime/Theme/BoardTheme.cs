@@ -76,10 +76,13 @@ namespace GazeBoard.Theme
             return luminance > 0.5f ? new Color(0.08f, 0.08f, 0.08f) : Color.white;
         }
 
+        [Tooltip("Added to a tile colour while gazed or hovered. Needed for black tiles, which a multiplier cannot brighten.")]
+        public float highlightLift = 0f;
+
         public Color Highlight(Color c) => new Color(
-            Mathf.Clamp01(c.r * highlightBrightness),
-            Mathf.Clamp01(c.g * highlightBrightness),
-            Mathf.Clamp01(c.b * highlightBrightness), c.a);
+            Mathf.Clamp01(c.r * highlightBrightness + highlightLift),
+            Mathf.Clamp01(c.g * highlightBrightness + highlightLift),
+            Mathf.Clamp01(c.b * highlightBrightness + highlightLift), c.a);
 
         /// <summary>Built-in themes used when no assets are assigned in ThemeManager.</summary>
         public static BoardTheme[] Defaults()
@@ -151,7 +154,9 @@ namespace GazeBoard.Theme
             contrast.infoTile = new Color(0.08f, 0.08f, 0.08f);
             contrast.recentTile = new Color(0.08f, 0.08f, 0.08f);
             contrast.tileText = yellow;
-            contrast.highlightBrightness = 3f; // black tiles brighten to grey when gazed
+            // Pure black times any multiplier stays black, so the gazed tile is lifted to grey instead.
+            contrast.highlightBrightness = 1f;
+            contrast.highlightLift = 0.30f;
             contrast.roundedCorners = false;
             contrast.outlineColor = new Color(1f, 1f, 0.4f, 1f);
             contrast.outlineWidth = 5f;

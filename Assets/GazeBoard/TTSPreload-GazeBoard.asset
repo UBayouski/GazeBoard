@@ -14,345 +14,381 @@ MonoBehaviour:
   m_EditorClassIdentifier: Meta.WitAi.TTS.Editor::Meta.WitAi.TTS.Preload.TTSPreloadSettings
   data:
     voices:
-    - presetVoiceID: WIT$BRITISH BUTLER
+    - presetVoiceID: WIT$COOPER
       phrases:
-      - clipID: tts_p783846216
+      - clipID: tts_n1900537767
         textToSpeak: Again
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p1419796066
+      - clipID: tts_n1942697759
         textToSpeak: Bathroom
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n1998716355
+      - clipID: tts_p1544577533
+        textToSpeak: Bigger
+        downloaded: 1
+        downloadProgress: 0
+      - clipID: tts_p2067033848
         textToSpeak: Blanket
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p231109724
+      - clipID: tts_p1122407204
+        textToSpeak: Board moved
+        downloaded: 1
+        downloadProgress: 0
+      - clipID: tts_p1149120684
+        textToSpeak: Board reset
+        downloaded: 1
+        downloadProgress: 0
+      - clipID: tts_n280238853
         textToSpeak: Call someone
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p997066626
+      - clipID: tts_p1292064671
         textToSpeak: Calm theme
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n757602604
+      - clipID: tts_p389754073
         textToSpeak: Choose a phrase to remove
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p1578924034
+      - clipID: tts_p1916294273
+        textToSpeak: Closer
+        downloaded: 1
+        downloadProgress: 0
+      - clipID: tts_n1986403897
         textToSpeak: Come here
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n1246753926
+      - clipID: tts_p1772689787
         textToSpeak: Could not reach your phone. Check the internet connection.
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n348148237
+      - clipID: tts_p1576272802
         textToSpeak: Dad
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p380849035
+      - clipID: tts_p947601036
         textToSpeak: Doctor
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p1880332908
+      - clipID: tts_n1281000243
         textToSpeak: Done editing
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p927551401
+      - clipID: tts_n496373212
         textToSpeak: Dwell 0.4 seconds
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p906935655
+      - clipID: tts_p563003234
         textToSpeak: Dwell 0.6 seconds
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n1257565411
+      - clipID: tts_p534156696
         textToSpeak: Dwell 0.8 seconds
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p482613284
+      - clipID: tts_n734222561
         textToSpeak: Dwell 1.0 seconds
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n1014807838
+      - clipID: tts_n467569827
         textToSpeak: Dwell 1.2 seconds
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p218240424
+      - clipID: tts_n588167517
         textToSpeak: Dwell 1.4 seconds
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n1279180698
+      - clipID: tts_n321514783
         textToSpeak: Dwell 1.6 seconds
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n1966876388
+      - clipID: tts_p442362391
         textToSpeak: Dwell 1.8 seconds
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p1249929635
+      - clipID: tts_p1485228190
         textToSpeak: Dwell 2.0 seconds
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p1667136229
+      - clipID: tts_n988169632
         textToSpeak: Dwell 2.2 seconds
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p985556775
+      - clipID: tts_p1631283234
         textToSpeak: Dwell 2.4 seconds
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p1402763369
+      - clipID: tts_n842114588
         textToSpeak: Dwell 2.6 seconds
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n1199560037
+      - clipID: tts_n1633154154
         textToSpeak: Dwell 2.8 seconds
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n1573392990
+      - clipID: tts_p1367293469
         textToSpeak: Dwell 3.0 seconds
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n1380759625
+      - clipID: tts_n1239710954
         textToSpeak: Everyone
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p1637042736
+      - clipID: tts_p1030065103
         textToSpeak: Family
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p808510176
+      - clipID: tts_p1497419303
+        textToSpeak: Farther
+        downloaded: 1
+        downloadProgress: 0
+      - clipID: tts_n1874713725
         textToSpeak: Friend
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n1895890515
+      - clipID: tts_n546331192
         textToSpeak: Gaze select off. Pinch to choose tiles.
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n73565120
+      - clipID: tts_n1425249763
         textToSpeak: Gaze select on
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n870178709
+      - clipID: tts_p244817948
         textToSpeak: Goodbye
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n411081728
+      - clipID: tts_n1906783249
         textToSpeak: Hello
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p502668983
+      - clipID: tts_p609822326
         textToSpeak: Hello, I am your Gaze Board voice.
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p1967669530
+      - clipID: tts_n83226647
         textToSpeak: Help!
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n703818781
+      - clipID: tts_n1573250904
         textToSpeak: High contrast theme
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p508386076
+      - clipID: tts_p1869168667
         textToSpeak: I don't know
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n1093420877
+      - clipID: tts_p2051858306
         textToSpeak: I feel sick
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n1291779146
+      - clipID: tts_n1476121257
         textToSpeak: I love you
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p1019404923
+      - clipID: tts_p2069094750
         textToSpeak: I need a break
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p888023952
+      - clipID: tts_n626206637
         textToSpeak: I need help. Please come here.
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n1855616426
+      - clipID: tts_n867954317
         textToSpeak: I need water
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n1060107222
+      - clipID: tts_p261250885
         textToSpeak: I'm angry
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p278167695
+      - clipID: tts_n1094503074
         textToSpeak: I'm bored
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n896279326
+      - clipID: tts_n617805983
         textToSpeak: I'm calm
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p676944645
+      - clipID: tts_n82415548
         textToSpeak: I'm cold
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p1848083749
+      - clipID: tts_p1612004642
         textToSpeak: I'm done
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n1495444997
+      - clipID: tts_n556970282
         textToSpeak: I'm excited
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n151403975
+      - clipID: tts_n546011976
         textToSpeak: I'm frustrated
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p2069641353
+      - clipID: tts_p1439307962
         textToSpeak: I'm happy
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p852903896
+      - clipID: tts_p608104669
         textToSpeak: I'm hot
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n930885284
+      - clipID: tts_p1190808637
         textToSpeak: I'm hungry
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n172102714
+      - clipID: tts_n2036832821
         textToSpeak: I'm in pain
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p702154238
+      - clipID: tts_n1324076325
         textToSpeak: I'm lonely
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p2024442873
+      - clipID: tts_p2003996758
         textToSpeak: I'm okay
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n508138781
+      - clipID: tts_p411193300
         textToSpeak: I'm sad
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n777268425
+      - clipID: tts_p699470262
         textToSpeak: I'm scared
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p22454711
+      - clipID: tts_n611430510
         textToSpeak: I'm tired
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p1258139574
+      - clipID: tts_p777625649
         textToSpeak: I'm uncomfortable
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n1030543892
+      - clipID: tts_n1391536819
+        textToSpeak: Look where you want the board.
+        downloaded: 1
+        downloadProgress: 0
+      - clipID: tts_n2027599001
         textToSpeak: Maybe
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n1510922966
+      - clipID: tts_n2084631123
         textToSpeak: Me
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p196037732
+      - clipID: tts_n1856175451
         textToSpeak: Medicine
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p995458441
+      - clipID: tts_n214661148
         textToSpeak: Mom
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n744397637
+      - clipID: tts_p41908506
         textToSpeak: More
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p2619451
+      - clipID: tts_p1211311800
         textToSpeak: No
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n2097315557
+      - clipID: tts_p1409773628
         textToSpeak: Nobody
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n1433754913
+      - clipID: tts_n1451197788
         textToSpeak: Nothing to repeat yet
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p175759629
+      - clipID: tts_p1127075550
         textToSpeak: Nothing to save yet
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p1932493501
+      - clipID: tts_n1616043986
         textToSpeak: Nurse
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n1776624334
+      - clipID: tts_n359574349
         textToSpeak: Phone alerts off
-        downloaded: 1
+        downloaded: 0
         downloadProgress: 0
-      - clipID: tts_n886162032
+      - clipID: tts_n568754699
         textToSpeak: Phone alerts on
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n1946690690
+      - clipID: tts_p1412495099
         textToSpeak: Please
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n1379373191
+      - clipID: tts_n159666020
         textToSpeak: Please move me
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n1569734300
+      - clipID: tts_p2085410111
         textToSpeak: Removed
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p1229886036
+      - clipID: tts_n92892891
         textToSpeak: Saved to my phrases
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p1215229258
-        textToSpeak: Showing the calm room
+      - clipID: tts_n1243064760
+        textToSpeak: Showing the beach house
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p1444481839
+      - clipID: tts_p1835544350
         textToSpeak: Showing your room
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p1936492128
+      - clipID: tts_p1424446957
+        textToSpeak: Smaller
+        downloaded: 1
+        downloadProgress: 0
+      - clipID: tts_p1063884161
         textToSpeak: Stop
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n504955487
+      - clipID: tts_p1250144508
         textToSpeak: Test message sent to your phone
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p459967193
+      - clipID: tts_p549590248
         textToSpeak: Thank you
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n80459889
+      - clipID: tts_p104149472
         textToSpeak: This is my voice speed now.
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n1461222195
+      - clipID: tts_p726756760
+        textToSpeak: Tiles are silent. Choose Speak to say the sentence.
+        downloaded: 1
+        downloadProgress: 0
+      - clipID: tts_n383301198
+        textToSpeak: Tiles speak when chosen
+        downloaded: 1
+        downloadProgress: 0
+      - clipID: tts_n345721270
         textToSpeak: Wait
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p1403865288
+      - clipID: tts_p773025769
         textToSpeak: Warm theme
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n429378678
+      - clipID: tts_p848847565
         textToSpeak: Who is it?
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_p1328287773
+      - clipID: tts_n182678772
         textToSpeak: Yes
         downloaded: 1
         downloadProgress: 0
-      - clipID: tts_n853602427
+      - clipID: tts_n306676256
         textToSpeak: You
         downloaded: 1
         downloadProgress: 0

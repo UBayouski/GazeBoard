@@ -65,6 +65,33 @@ namespace GazeBoard.Board
         private UserPhrases _userPhrases;
         private readonly HashSet<string> _bakedPhrases = new HashSet<string>();
 
+        /// <summary>Time a gaze user gets to look at the new spot after choosing Recenter.</summary>
+        private const float RecenterDelaySeconds = 3.5f;
+        private BoardPlacement _placement;
+
+        private const string SpeakTilesKey = "gazeboard.speakTiles";
+        private static int _speakTiles = -1;
+
+        /// <summary>
+        /// Whether a phrase tile is spoken the moment it is chosen. When off, phrase tiles only
+        /// build the sentence and nothing is heard (or sent to the phone) until Speak. Yes, No
+        /// and Help always speak at once. Persisted.
+        /// </summary>
+        private static bool SpeakTiles
+        {
+            get
+            {
+                if (_speakTiles < 0) _speakTiles = PlayerPrefs.GetInt(SpeakTilesKey, 1);
+                return _speakTiles == 1;
+            }
+            set
+            {
+                _speakTiles = value ? 1 : 0;
+                PlayerPrefs.SetInt(SpeakTilesKey, _speakTiles);
+                PlayerPrefs.Save();
+            }
+        }
+
         /// <summary>Speaks user content: baked clip when the text is a board phrase, per-user cache otherwise.</summary>
         private void SpeakUser(string text) => SpeechService.Speak(text, true, userText: !_bakedPhrases.Contains(text));
 
@@ -164,6 +191,11 @@ namespace GazeBoard.Board
             if (_themes == null) _fallbackTheme ??= BoardTheme.Defaults()[0];
             else _themes.WhenChanged += HandleThemeChanged;
 
+            // Placement needs no scene wiring: it lives on the board canvas and builds its own handle.
+            _placement = GetComponent<BoardPlacement>();
+            if (_placement == null) _placement = gameObject.AddComponent<BoardPlacement>();
+            _placement.WhenChanged += HandlePlacementChanged;
+
             BindFixedTiles();
             ApplyBoardTheme();
             BuildCategoryBar();
@@ -172,6 +204,7 @@ namespace GazeBoard.Board
 
         private void OnDestroy()
         {
+            if (_placement != null) _placement.WhenChanged -= HandlePlacementChanged;
             if (_themes != null) _themes.WhenChanged -= HandleThemeChanged;
         }
 
@@ -388,14 +421,24 @@ namespace GazeBoard.Board
             ApplyGridLayout(category.columns, category.rows);
 
             int free = cells - tail.Count;
-            int pageCount = Mathf.Max(1, Mathf.CeilToInt(tiles.Count / (float)free));
-            bool needsPaging = pageCount > 1;
-            int perPage = needsPaging ? free - 1 : free;
-            if (needsPaging) pageCount = Mathf.CeilToInt(tiles.Count / (float)perPage);
-            if (_page >= pageCount || _page < 0) _page = 0; // "More" wraps around to the first page
+            bool needsPaging = tiles.Count > free;
+            // The first page gives one cell to More and the last one to Back; pages in between
+            // carry both, so every page can go either way.
+            int edgeCapacity = Mathf.Max(1, free - 1);
+            int middleCapacity = Mathf.Max(1, free - 2);
+            int pageCount = 1;
+            if (needsPaging)
+            {
+                pageCount = 2;
+                while (edgeCapacity * 2 + middleCapacity * (pageCount - 2) < tiles.Count) pageCount++;
+            }
+            if (_page >= pageCount || _page < 0) _page = 0;
 
-            int start = _page * perPage;
-            int end = Mathf.Min(tiles.Count, start + perPage);
+            bool first = _page == 0;
+            bool last = _page == pageCount - 1;
+            int capacity = !needsPaging ? free : (first || last) ? edgeCapacity : middleCapacity;
+            int start = first ? 0 : edgeCapacity + (_page - 1) * middleCapacity;
+            int end = Mathf.Min(tiles.Count, start + capacity);
             for (int i = start; i < end; i++)
             {
                 AddGridTile(tiles[i], category);
@@ -403,12 +446,14 @@ namespace GazeBoard.Board
 
             if (needsPaging)
             {
-                // Pad so the tail tiles keep their place at the end of the grid on every page.
-                for (int i = end - start; i < perPage; i++) AddGridTile(new TileData("", TileKind.Info), category, placeholder: true);
-                // The last page wraps around to the first, so its tile points back.
-                bool last = _page == pageCount - 1;
-                AddGridTile(new TileData(last ? $"Back ({_page + 1}/{pageCount})" : $"More ({_page + 1}/{pageCount})",
-                    TileKind.NextPage, null, last ? "arrow-left" : "arrow-right"), category);
+                // Pad so the navigation and tail tiles keep their place at the end of the grid.
+                for (int i = end - start; i < capacity; i++) AddGridTile(new TileData("", TileKind.Info), category, placeholder: true);
+
+                string count = $"({_page + 1}/{pageCount})";
+                if (!first && !last) AddGridTile(new TileData("Back", TileKind.PrevPage, null, "arrow-left"), category);
+                AddGridTile(last
+                    ? new TileData($"Back {count}", TileKind.PrevPage, null, "arrow-left")
+                    : new TileData($"More {count}", TileKind.NextPage, null, "arrow-right"), category);
             }
             else if (tail.Count > 0)
             {
@@ -586,7 +631,27 @@ namespace GazeBoard.Board
                     ? new TileData("View\nMy room", TileKind.Environment, null, "camera")
                     : new TileData("View\nCalm room", TileKind.Environment, null, "house");
 
-            // Page 2: phone alerts through ntfy, as a row with its own header.
+            // Page 2: where the board sits. The same can be done by pinching the bar under the
+            // board and dragging; these tiles are the no-hands way.
+            float distance = _placement != null ? _placement.Distance : BoardPlacement.DefaultDistance;
+            float scale = _placement != null ? _placement.ScaleFactor : BoardPlacement.DefaultScale;
+            yield return new TileData($"Board\n{distance:0.0} m", TileKind.Info, null, "move");
+            yield return new TileData("Recenter", TileKind.BoardRecenter, null, "scan-eye");
+            yield return new TileData("Closer", TileKind.BoardCloser, null, "minus");
+            yield return new TileData("Farther", TileKind.BoardFarther, null, "plus");
+
+            yield return new TileData($"Size\n{Mathf.RoundToInt(scale * 100f)}%", TileKind.Info, null, "layers");
+            yield return new TileData("Smaller", TileKind.BoardSmaller, null, "minus");
+            yield return new TileData("Bigger", TileKind.BoardBigger, null, "plus");
+            yield return new TileData("Reset", TileKind.BoardReset, null, "history");
+
+            // Speak each tile as it is chosen, or stay silent until Speak.
+            yield return new TileData("Speech", TileKind.Info, null, "speech");
+            yield return new TileData(SpeakTiles ? "Speak tiles\nON" : "Speak tiles\nOFF", TileKind.SpeakTilesToggle, null,
+                SpeakTiles ? "volume-2" : "ban");
+            // Back and More fill the rest of this row, which ends page 2.
+
+            // Page 3: phone alerts through ntfy, as a row with its own header.
             yield return new TileData("Phone", TileKind.Info, null, "smartphone");
             yield return new TileData(PhoneNotifier.Enabled ? "Alerts\nON" : "Alerts\nOFF", TileKind.PhoneToggle, null,
                 PhoneNotifier.Enabled ? "bell-ring" : "phone-off");
@@ -605,14 +670,21 @@ namespace GazeBoard.Board
             switch (data.kind)
             {
                 case TileKind.Phrase:
-                    SpeechService.Speak(data.Text);
-                    PhoneNotifier.Say(data.Text);
+                    // Yes and No are answers, so they are heard at once even when tiles are silent.
+                    if (SpeakTiles || tile == _yesTile || tile == _noTile)
+                    {
+                        SpeechService.Speak(data.Text);
+                        PhoneNotifier.Say(data.Text);
+                    }
                     _sentence.AppendPhrase(data.Text);
                     break;
                 case TileKind.SavedPhrase:
                 case TileKind.RecentPhrase:
-                    SpeakUser(data.Text);
-                    PhoneNotifier.Say(data.Text);
+                    if (SpeakTiles)
+                    {
+                        SpeakUser(data.Text);
+                        PhoneNotifier.Say(data.Text);
+                    }
                     _sentence.AppendPhrase(data.Text);
                     break;
                 case TileKind.Letter:
@@ -671,6 +743,10 @@ namespace GazeBoard.Board
                     break;
                 case TileKind.NextPage:
                     _page++;
+                    RebuildGrid();
+                    break;
+                case TileKind.PrevPage:
+                    _page = Mathf.Max(0, _page - 1);
                     RebuildGrid();
                     break;
 
@@ -761,9 +837,57 @@ namespace GazeBoard.Board
                 case TileKind.PhoneTest:
                     PhoneNotifier.SendTest(ok => SpeechService.Speak(ok ? SpokenPhrases.PhoneTestSent : SpokenPhrases.PhoneSendFailed));
                     break;
+                case TileKind.SpeakTilesToggle:
+                    SpeakTiles = !SpeakTiles;
+                    SpeechService.Speak(SpeakTiles ? SpokenPhrases.SpeakTilesOn : SpokenPhrases.SpeakTilesOff);
+                    RebuildGrid();
+                    break;
+                case TileKind.BoardRecenter:
+                    if (_placement != null)
+                    {
+                        // A gaze user cannot look at this tile and at the new spot at once, so
+                        // the board waits while they turn, then comes to where they look.
+                        SpeechService.Speak(SpokenPhrases.BoardRecenterPrompt);
+                        _placement.RecenterAfter(RecenterDelaySeconds, () => SpeechService.Speak(SpokenPhrases.BoardMoved));
+                    }
+                    break;
+                case TileKind.BoardCloser:
+                    StepBoard(distanceSteps: -1, scaleSteps: 0, SpokenPhrases.BoardCloser);
+                    break;
+                case TileKind.BoardFarther:
+                    StepBoard(distanceSteps: 1, scaleSteps: 0, SpokenPhrases.BoardFarther);
+                    break;
+                case TileKind.BoardSmaller:
+                    StepBoard(distanceSteps: 0, scaleSteps: -1, SpokenPhrases.BoardSmaller);
+                    break;
+                case TileKind.BoardBigger:
+                    StepBoard(distanceSteps: 0, scaleSteps: 1, SpokenPhrases.BoardBigger);
+                    break;
+                case TileKind.BoardReset:
+                    if (_placement != null)
+                    {
+                        SpeechService.Speak(SpokenPhrases.BoardReset);
+                        _placement.ResetPlacement(); // raises WhenChanged, which refreshes the page
+                    }
+                    break;
                 case TileKind.Info:
                     break;
             }
+        }
+
+        private void StepBoard(int distanceSteps, int scaleSteps, string spoken)
+        {
+            if (_placement == null) return;
+            SpeechService.Speak(spoken);
+            // Each step raises WhenChanged, which refreshes the value tiles.
+            if (distanceSteps != 0) _placement.StepDistance(distanceSteps);
+            if (scaleSteps != 0) _placement.StepScale(scaleSteps);
+        }
+
+        /// <summary>Tiles and hand drags both change the placement; keep the Settings value tiles current.</summary>
+        private void HandlePlacementChanged()
+        {
+            if (Current != null && Current.isSettings) RebuildGrid();
         }
     }
 }
