@@ -22,6 +22,8 @@ namespace GazeBoard.Speech
         public const string Yes = "Yes";
         public const string No = "No";
         public const string HelpCall = "I need help. Please come here.";
+        /// <summary>Short repeat of the alert, so it rarely collides with what the user is saying.</summary>
+        public const string HelpRepeat = "Help!";
 
         // Personal phrases.
         public const string PhraseSaved = "Saved to my phrases";
@@ -53,6 +55,7 @@ namespace GazeBoard.Speech
             yield return Yes;
             yield return No;
             yield return HelpCall;
+            yield return HelpRepeat;
             yield return PhraseSaved;
             yield return NothingToSave;
             yield return NothingToRepeat;

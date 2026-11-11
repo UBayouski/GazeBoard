@@ -148,6 +148,10 @@ MonoBehaviour:
         textToSpeak: Hello, I am your Gaze Board voice.
         downloaded: 1
         downloadProgress: 0
+      - clipID: tts_p1967669530
+        textToSpeak: Help!
+        downloaded: 1
+        downloadProgress: 0
       - clipID: tts_n703818781
         textToSpeak: High contrast theme
         downloaded: 1

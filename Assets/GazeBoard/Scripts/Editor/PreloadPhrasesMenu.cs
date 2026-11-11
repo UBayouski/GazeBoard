@@ -86,10 +86,28 @@ namespace GazeBoard.EditorTools
                     int ok = data.voices.Sum(v => v.phrases.Count(p => p.downloaded));
                     int total = data.voices.Sum(v => v.phrases.Length);
                     string folder = Path.Combine(Application.streamingAssetsPath, "TTS");
-                    int files = Directory.Exists(folder) ? Directory.GetFiles(folder).Count(f => !f.EndsWith(".meta")) : 0;
+                    int files = WriteManifest(folder);
+                    AssetDatabase.Refresh();
                     Debug.Log($"[GazeBoard] Preload finished: {ok}/{total} phrases downloaded, {files} clip files in StreamingAssets/TTS." +
                               (string.IsNullOrEmpty(log) ? "" : "\n" + log));
                 });
+        }
+
+        /// <summary>
+        /// Lists the clip files in StreamingAssets/TTS/manifest.txt. On Android the app copies them
+        /// out of the APK at launch (PreloadInstaller) and needs the list to know what is there.
+        /// Returns the number of clip files.
+        /// </summary>
+        private static int WriteManifest(string folder)
+        {
+            if (!Directory.Exists(folder)) return 0;
+            var names = Directory.GetFiles(folder)
+                .Select(Path.GetFileName)
+                .Where(n => !n.EndsWith(".meta") && !n.EndsWith(".tmp") && n != "manifest.txt")
+                .OrderBy(n => n)
+                .ToList();
+            File.WriteAllText(Path.Combine(folder, "manifest.txt"), string.Join("\n", names) + "\n");
+            return names.Count;
         }
 
         /// <summary>The service needs a disk cache handler or it never reads or writes clip files.</summary>

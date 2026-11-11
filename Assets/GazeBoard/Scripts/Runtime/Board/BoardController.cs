@@ -63,6 +63,54 @@ namespace GazeBoard.Board
         private readonly SentenceBuilder _sentence = new SentenceBuilder();
         private WordPredictor _predictor;
         private UserPhrases _userPhrases;
+        private readonly HashSet<string> _bakedPhrases = new HashSet<string>();
+
+        /// <summary>Speaks user content: baked clip when the text is a board phrase, per-user cache otherwise.</summary>
+        private void SpeakUser(string text) => SpeechService.Speak(text, true, userText: !_bakedPhrases.Contains(text));
+
+        /// <summary>
+        /// Speaks the sentence bar. Online, the whole sentence streams as one natural utterance.
+        /// Offline, no clip exists for a new combination, so the sentence is split back into the
+        /// baked phrases it was built from and those play back to back. Spelled words have no
+        /// offline clip and are skipped.
+        /// </summary>
+        private void SpeakSentence(string text)
+        {
+            bool offline = Application.internetReachability == NetworkReachability.NotReachable;
+            if (!offline || _bakedPhrases.Contains(text))
+            {
+                SpeakUser(text);
+                return;
+            }
+
+            List<string> parts = SplitIntoBakedPhrases(text);
+            if (parts.Count == 0)
+            {
+                Debug.Log("[GazeBoard] Offline and no baked phrase in the sentence; nothing to play.");
+                return;
+            }
+            SpeechService.SpeakParts(parts);
+        }
+
+        /// <summary>Greedy longest match of the sentence's words against the baked phrases.</summary>
+        private List<string> SplitIntoBakedPhrases(string text)
+        {
+            var parts = new List<string>();
+            string[] words = text.Split(new[] { ' ' }, System.StringSplitOptions.RemoveEmptyEntries);
+            int i = 0;
+            while (i < words.Length)
+            {
+                string found = null;
+                for (int len = words.Length - i; len >= 1; len--)
+                {
+                    string candidate = string.Join(" ", words, i, len);
+                    if (_bakedPhrases.Contains(candidate)) { found = candidate; i += len; break; }
+                }
+                if (found != null) parts.Add(found);
+                else i++; // a spelled word: no offline clip
+            }
+            return parts;
+        }
         private int _categoryIndex = -1;
         private int _page;
         private float _gridTopOffset;
@@ -91,6 +139,17 @@ namespace GazeBoard.Board
 
             _predictor = new WordPredictor();
             _userPhrases = new UserPhrases();
+
+            // Everything the preload step bakes into the APK. A recent or saved sentence that
+            // matches one of these must play from the baked clip, or it would fail offline.
+            foreach (BoardCategory category in _definition.categories)
+            {
+                foreach (TileData tile in category.tiles)
+                {
+                    if (tile.kind == TileKind.Phrase) _bakedPhrases.Add(tile.Text);
+                }
+            }
+            foreach (string s in SpokenPhrases.All()) _bakedPhrases.Add(s);
 
             if (_tileGrid != null)
             {
@@ -541,13 +600,8 @@ namespace GazeBoard.Board
         {
             TileData data = tile.Data;
 
-            // Choosing anything else ends a running help alert: the user is back in control.
-            if (SpeechService.IsAlerting && data.kind != TileKind.Help)
-            {
-                SpeechService.StopAlert();
-                BindHelpTile();
-            }
-
+            // A running help alert keeps going while the user says more; only Stop or its
+            // repeat limit ends it.
             switch (data.kind)
             {
                 case TileKind.Phrase:
@@ -557,7 +611,7 @@ namespace GazeBoard.Board
                     break;
                 case TileKind.SavedPhrase:
                 case TileKind.RecentPhrase:
-                    SpeechService.Speak(data.Text, true, userText: true);
+                    SpeakUser(data.Text);
                     PhoneNotifier.Say(data.Text);
                     _sentence.AppendPhrase(data.Text);
                     break;
@@ -574,7 +628,7 @@ namespace GazeBoard.Board
                     if (!_sentence.IsEmpty)
                     {
                         string text = _sentence.Text;
-                        SpeechService.Speak(text, true, userText: true);
+                        SpeakSentence(text);
                         PhoneNotifier.Say(text);
                         _userPhrases.AddRecent(text);
                         _predictor.Learn(text);
@@ -628,7 +682,7 @@ namespace GazeBoard.Board
                     }
                     else
                     {
-                        SpeechService.StartAlert(data.Text);
+                        SpeechService.StartAlert(data.Text, SpokenPhrases.HelpRepeat);
                         PhoneNotifier.Help(data.Text);
                     }
                     BindHelpTile();

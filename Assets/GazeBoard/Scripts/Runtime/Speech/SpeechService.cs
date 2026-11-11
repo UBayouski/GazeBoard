@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace GazeBoard.Speech
@@ -69,13 +70,41 @@ namespace GazeBoard.Speech
             Debug.Log($"[GazeBoard.Speech] Speak(\"{text}\") via {(synth != null ? synth.GetType().Name : "no backend")}, ready={synth?.IsReady}");
             Instance._lastSpoken = text;
             Instance._lastWasUserText = userText;
+            Instance._lastParts = null;
+            // While the alert phrase itself is playing, queue behind it instead of cutting it off.
+            if (interrupt && Instance.AlertPhrasePlaying) interrupt = false;
             synth?.Speak(text, interrupt, userText);
             WhenSpoken?.Invoke(text);
         }
 
+        /// <summary>
+        /// Speaks several baked phrases back to back as one utterance. Used offline for a sentence
+        /// built from tiles, where no clip exists for the sentence as a whole.
+        /// </summary>
+        public static void SpeakParts(IReadOnlyList<string> parts)
+        {
+            if (parts == null || parts.Count == 0) return;
+            var synth = Instance._synth;
+            Debug.Log($"[GazeBoard.Speech] SpeakParts({parts.Count} parts) via {(synth != null ? synth.GetType().Name : "no backend")}");
+            for (int i = 0; i < parts.Count; i++)
+            {
+                synth?.Speak(parts[i], interrupt: i == 0, userText: false);
+            }
+            Instance._lastSpoken = string.Join(" ", parts);
+            Instance._lastParts = new List<string>(parts);
+            WhenSpoken?.Invoke(Instance._lastSpoken);
+        }
+
+        private List<string> _lastParts;
+
         /// <summary>Speaks the last text again. Returns false when nothing has been spoken yet.</summary>
         public static bool RepeatLast()
         {
+            if (Instance._lastParts != null)
+            {
+                SpeakParts(Instance._lastParts);
+                return true;
+            }
             string last = LastSpoken;
             if (string.IsNullOrEmpty(last)) return false;
             Speak(last, true, Instance._lastWasUserText);
@@ -89,11 +118,11 @@ namespace GazeBoard.Speech
         /// Attention alert: a two-tone chime, then the text, repeated every interval until
         /// StopAlert is called or the repeat limit is reached. For calling someone in another room.
         /// </summary>
-        public static void StartAlert(string text, float intervalSeconds = 8f, int repeats = 10)
+        public static void StartAlert(string text, string repeatText = null, float intervalSeconds = 8f, int repeats = 10)
         {
             StopAlert();
             Stop();
-            Instance._alert = Instance.StartCoroutine(Instance.AlertLoop(text, intervalSeconds, repeats));
+            Instance._alert = Instance.StartCoroutine(Instance.AlertLoop(text, repeatText ?? text, intervalSeconds, repeats));
         }
 
         public static void StopAlert()
@@ -138,6 +167,9 @@ namespace GazeBoard.Speech
             }
             _synth.SetRate(_rate);
 
+            // Make the baked clips available as plain files (Android cannot stream them from the APK).
+            StartCoroutine(PreloadInstaller.Install());
+
 #if UNITY_ANDROID && !UNITY_EDITOR
             AndroidAudioFocus.Request();
 #endif
@@ -149,13 +181,25 @@ namespace GazeBoard.Speech
         private AudioClip _chimeClip;
         private Coroutine _alert;
 
-        private IEnumerator AlertLoop(string text, float intervalSeconds, int repeats)
+        private float _alertSpokenAt = -10f;
+        private const float AlertPhraseWindow = 3f;
+
+        /// <summary>True while the alert phrase itself is most likely still playing.</summary>
+        private bool AlertPhrasePlaying =>
+            _alert != null && IsSpeaking && Time.unscaledTime - _alertSpokenAt < AlertPhraseWindow;
+
+        private IEnumerator AlertLoop(string text, string repeatText, float intervalSeconds, int repeats)
         {
             for (int i = 0; i < repeats; i++)
             {
+                // Never talk over the user: wait until the voice is idle, then a short gap.
+                while (IsSpeaking) yield return new WaitForSecondsRealtime(0.1f);
+                yield return new WaitForSecondsRealtime(0.4f);
+
                 PlayChime();
                 yield return new WaitForSecondsRealtime(0.75f);
-                Speak(text);
+                _alertSpokenAt = Time.unscaledTime;
+                _synth?.Speak(i == 0 ? text : repeatText, interrupt: false);
                 yield return new WaitForSecondsRealtime(intervalSeconds);
             }
             _alert = null;

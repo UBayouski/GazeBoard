@@ -51,9 +51,11 @@ namespace GazeBoard.Speech
                 return;
             }
 
-            // Board phrases: play from the clips baked into the APK (offline), otherwise stream.
+            // Board phrases: play from the baked clips (offline), otherwise stream.
             // User sentences: stream once, then keep the clip in persistent storage for offline replay.
-            var cache = userText ? PersistentCache : PreloadCache;
+            // On Android the baked clips are copied into the persistent folder at launch (see
+            // PreloadInstaller), so everything comes from the Persistent location there.
+            var cache = userText || PreloadInstaller.UsesCopiedClips ? PersistentCache : PreloadCache;
 
             // The baked clips were made at the preset's speed. Offline, a speed override would make
             // every clip id miss and the phrase would fail silently, so speak at the preset speed.
