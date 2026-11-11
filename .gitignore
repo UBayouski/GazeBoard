@@ -69,3 +69,7 @@ Thumbs.db
 /ProjectSettings/WitConfigExports/
 /Assets/_Recovery/
 /Assets/_Recovery.meta
+
+# Android signing keys: never commit these
+*.keystore
+*.jks
