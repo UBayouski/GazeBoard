@@ -146,6 +146,7 @@ namespace GazeBoard.Board
         private const float NoticeSeconds = 6f;
         private const float NoticeFadeSeconds = 0.5f;
         private const string NoticeCannotSpeak = "No internet. This cannot be spoken right now.";
+        private const string NoticeSpeechFailed = "The voice service did not answer. This cannot be spoken right now.";
         private const string NoticePhoneFailed = "Phone alert was not sent.";
         private const string NoticeHelpFailed = "Help alert was not sent to the phone.";
 
@@ -156,7 +157,8 @@ namespace GazeBoard.Board
         private float _noticeUntil;
         private bool _noticeIsSpeech;
 
-        private void HandleSpeechUnavailable(string text) => ShowNotice(NoticeCannotSpeak, aboutSpeech: true);
+        private void HandleSpeechUnavailable(string text, bool noConnection) =>
+            ShowNotice(noConnection ? NoticeCannotSpeak : NoticeSpeechFailed, aboutSpeech: true);
 
         private void HandlePhoneSent(bool accepted, bool urgent)
         {
@@ -440,6 +442,7 @@ namespace GazeBoard.Board
             // Coroutines stop with the component; do not leave words hanging in the air.
             foreach (GameObject go in _flying) if (go != null) Destroy(go);
             _flying.Clear();
+            _uniformPass = null;
         }
 
         private int StartCategory()
@@ -495,12 +498,92 @@ namespace GazeBoard.Board
             BindActionTile(_settingsTile, new TileData("Settings", TileKind.Settings, null, "settings"), Theme.actionTile, _categoryDwellMultiplier);
             ApplySettingsTileDwell();
 
+            // The quick row is wide and low: icon beside the label, so both can be large.
+            if (_quickTiles.Count == 0)
+            {
+                foreach (BoardTile tile in new[] { _yesTile, _noTile, _helpTile, _repeatTile, _recentTile, _saveTile })
+                {
+                    if (tile == null) continue;
+                    tile.SideBySide = true;
+                    _quickTiles.Add(tile);
+                }
+            }
+
             BindActionTile(_yesTile, new TileData("Yes", TileKind.Phrase, SpokenPhrases.Yes, "check"), Theme.yesTile);
             BindActionTile(_noTile, new TileData("No", TileKind.Phrase, SpokenPhrases.No, "x"), Theme.noTile);
             BindHelpTile();
             BindActionTile(_repeatTile, new TileData("Repeat", TileKind.Repeat, null, "repeat"), Theme.actionTile);
             BindActionTile(_recentTile, new TileData("Recent", TileKind.ShowRecent, null, "history"), Theme.recentTile);
             BindActionTile(_saveTile, new TileData("Save", TileKind.SavePhrase, null, "bookmark-plus"), Theme.personalTile, _carefulDwellMultiplier);
+            UniformLabels(_quickTiles);
+            RequestUniformPass();
+        }
+
+        // ---- label sizes ----
+
+        /// <summary>
+        /// Below this a shared label size is not worth having: one very long phrase (a saved
+        /// sentence) would make every label on the page hard to read. That tile alone goes smaller.
+        /// </summary>
+        private const float MinUniformLabel = 30f;
+
+        private readonly List<BoardTile> _quickTiles = new List<BoardTile>();
+        private static readonly List<float> _labelSizes = new List<float>();
+        private Coroutine _uniformPass;
+
+        /// <summary>
+        /// Gives a group of tiles one label size: the largest that fits every one of them. Left
+        /// alone, each label sizes itself, and short phrases come out larger than their neighbours.
+        /// cell is the size the layout group is about to give a tile that was only just created.
+        /// </summary>
+        private static void UniformLabels(List<BoardTile> tiles, Vector2? cell = null)
+        {
+            _labelSizes.Clear();
+            float smallest = float.MaxValue;
+            foreach (BoardTile tile in tiles)
+            {
+                TMP_Text label = tile != null ? tile.Label : null;
+                if (label == null || string.IsNullOrEmpty(label.text))
+                {
+                    _labelSizes.Add(0f);
+                    continue;
+                }
+                if (cell.HasValue) ((RectTransform)tile.transform).sizeDelta = cell.Value;
+                label.enableAutoSizing = true;
+                label.ForceMeshUpdate();
+                _labelSizes.Add(label.fontSize);
+                smallest = Mathf.Min(smallest, label.fontSize);
+            }
+            if (smallest == float.MaxValue) return;
+
+            float shared = Mathf.Max(smallest, MinUniformLabel);
+            for (int i = 0; i < tiles.Count; i++)
+            {
+                if (_labelSizes[i] <= 0f) continue;
+                TMP_Text label = tiles[i].Label;
+                label.enableAutoSizing = false;
+                label.fontSize = Mathf.Min(_labelSizes[i], shared);
+            }
+        }
+
+        /// <summary>
+        /// Measures again on the next frame. A tile measured in the frame it was created has not
+        /// been through the layout pass yet; this corrects it if the first measure was off.
+        /// </summary>
+        private void RequestUniformPass()
+        {
+            if (!isActiveAndEnabled) return;
+            if (_uniformPass != null) StopCoroutine(_uniformPass);
+            _uniformPass = StartCoroutine(UniformPass());
+        }
+
+        private IEnumerator UniformPass()
+        {
+            yield return null;
+            UniformLabels(_gridTiles);
+            UniformLabels(_categoryTiles);
+            UniformLabels(_quickTiles);
+            _uniformPass = null;
         }
 
         /// <summary>
@@ -572,6 +655,9 @@ namespace GazeBoard.Board
                 if (dwell != null) dwell.DwellMultiplier = _categoryDwellMultiplier;
                 _categoryTiles.Add(tile);
             }
+
+            if (_categoryGridLayout != null) UniformLabels(_categoryTiles, _categoryGridLayout.cellSize);
+            RequestUniformPass();
         }
 
         /// <summary>How far a category that is not open blends into the board colour. 0 turns it off.</summary>
@@ -705,6 +791,9 @@ namespace GazeBoard.Board
             }
 
             foreach (TileData data in tail) AddGridTile(data, category);
+
+            if (_tileGridLayout != null) UniformLabels(_gridTiles, _tileGridLayout.cellSize);
+            RequestUniformPass();
         }
 
         private void ApplyGridLayout(int columns, int rows)

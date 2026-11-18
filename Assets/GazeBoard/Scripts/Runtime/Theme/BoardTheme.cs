@@ -25,7 +25,7 @@ namespace GazeBoard.Theme
         public Color gazeCursor = new Color(1f, 1f, 1f, 0.55f);
 
         // The Calm colours are chosen so white text reaches a contrast ratio of at least 4.5:1 on
-        // every tile at rest and 3.5:1 while it is gazed (WCAG relative luminance). People is a
+        // every tile at rest and 3.8:1 while it is gazed (WCAG relative luminance). People is a
         // dark gold rather than a yellow for the same reason, so every category has white text.
         [Header("Tiles by role")]
         public Color socialTile = new Color(0.53f, 0.33f, 0.69f);
@@ -47,7 +47,7 @@ namespace GazeBoard.Theme
         public Color recentTile = new Color(0.26f, 0.40f, 0.42f);
         public Color tileText = Color.white;
         [Tooltip("Multiplier applied to a tile colour while gazed or hovered.")]
-        public float highlightBrightness = 1.15f;
+        public float highlightBrightness = 1.10f;
 
         [Header("Tile shape")]
         public bool roundedCorners = true;

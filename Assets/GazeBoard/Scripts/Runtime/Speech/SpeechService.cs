@@ -47,8 +47,10 @@ namespace GazeBoard.Speech
         /// <summary>
         /// Raised with the text when something could not be spoken: there is no connection and no
         /// clip of it on the device, or the voice service failed. Nothing was heard for that text.
+        /// The second argument is true when the device has no connection, which is the only
+        /// case where "no internet" is a true thing to tell the user.
         /// </summary>
-        public static event Action<string> WhenUnavailable;
+        public static event Action<string, bool> WhenUnavailable;
 
         /// <summary>True when the text can be spoken with no connection (a clip is on the device).</summary>
         public static bool HasOfflineClip(string text)
@@ -64,16 +66,23 @@ namespace GazeBoard.Speech
         /// </summary>
         public static void ReportUnavailable(string text)
         {
-            Debug.LogWarning($"[GazeBoard.Speech] Cannot speak {LogText.Of(text)}: no connection and no clip on the device, or the voice service failed.");
+            // Without a connection the cause is known. With one, the voice service failed for a
+            // reason this app cannot see (an outage, a refused request), so it does not guess.
+            bool noConnection = IsOffline;
+            Debug.LogWarning(noConnection
+                ? $"[GazeBoard.Speech] Cannot speak {LogText.Of(text)}: no connection and no clip on the device."
+                : $"[GazeBoard.Speech] Cannot speak {LogText.Of(text)}: the voice service failed.");
             Instance._lastSpoken = text;
             Instance._lastParts = null;
-            WhenUnavailable?.Invoke(text);
+            WhenUnavailable?.Invoke(text, noConnection);
 
             var synth = Instance._synth;
-            if (synth == null || text == SpokenPhrases.CannotSpeakNow) return;
-            if (!synth.HasOfflineClip(SpokenPhrases.CannotSpeakNow)) return;
+            // If one of these messages is itself what failed, do not try to say it again.
+            if (synth == null || text == SpokenPhrases.CannotSpeakNow || text == SpokenPhrases.CannotSpeakFailed) return;
+            string message = noConnection ? SpokenPhrases.CannotSpeakNow : SpokenPhrases.CannotSpeakFailed;
+            if (!synth.HasOfflineClip(message)) return;
             if (Instance.AlertPhrasePlaying) return; // the help call matters more than this notice
-            synth.Speak(SpokenPhrases.CannotSpeakNow, interrupt: true, userText: false);
+            synth.Speak(message, interrupt: true, userText: false);
         }
 
         /// <summary>The last text handed to the engine, for the Repeat tile. Null before anything was spoken.</summary>

@@ -106,6 +106,7 @@ namespace GazeBoard.Board
         private Transform _room;
         private Vector3 _roomHomePosition;
         private Quaternion _roomHomeRotation;
+        private EnvironmentManager _environment;
 
         private void Awake()
         {
@@ -124,12 +125,18 @@ namespace GazeBoard.Board
         private void OnEnable()
         {
             OVRManager.HMDMounted += HandleMounted;
+            SubscribeToEnvironment();
             RecenterWhenWorn();
         }
+
+        // EnvironmentManager sets its Instance in Awake, which may run after this OnEnable.
+        private void Start() => SubscribeToEnvironment();
 
         private void OnDisable()
         {
             OVRManager.HMDMounted -= HandleMounted;
+            if (_environment != null) _environment.WhenChanged -= HandleEnvironmentChanged;
+            _environment = null;
             if (_pending != null) StopCoroutine(_pending);
             _pending = null;
             if (_dragHand != null) EndDrag();
@@ -143,6 +150,29 @@ namespace GazeBoard.Board
         }
 
         private void HandleMounted() => RecenterWhenWorn();
+
+        private void SubscribeToEnvironment()
+        {
+            if (_environment != null || EnvironmentManager.Instance == null) return;
+            _environment = EnvironmentManager.Instance;
+            _environment.WhenChanged += HandleEnvironmentChanged;
+        }
+
+        /// <summary>
+        /// Switching to the calm room places it around the user where they are now, facing the
+        /// board. Otherwise the room stays where it was put when the headset went on, and a user
+        /// who has since walked a few metres finds themselves outside it, where its walls do not show.
+        /// </summary>
+        private void HandleEnvironmentChanged(EnvironmentMode mode)
+        {
+            if (mode != EnvironmentMode.Room) return;
+            Transform head = Head();
+            if (head == null) return;
+            Vector3 toBoard = Vector3.ProjectOnPlane(_targetPosition - head.position, Vector3.up);
+            Vector3 facing = toBoard.sqrMagnitude > 0.0001f ? toBoard.normalized : FlatForward(head);
+            AlignRoom(head.position, facing);
+            Debug.Log("[GazeBoard] Calm room placed around the user on switching to it.");
+        }
 
         // ---- public actions ----
 

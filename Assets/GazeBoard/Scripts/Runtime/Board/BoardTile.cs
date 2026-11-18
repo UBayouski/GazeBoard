@@ -29,6 +29,15 @@ namespace GazeBoard.Board
         public TMP_Text Label => _label;
         public Image Background => _background;
 
+        /// <summary>
+        /// Puts the icon to the left of the label instead of above it. For tiles much wider than
+        /// tall (the quick row), where stacking the two leaves both small. Set before Bind.
+        /// </summary>
+        public bool SideBySide { get; set; }
+
+        /// <summary>Fraction of the tile width the icon takes when it sits beside the label.</summary>
+        private const float SideIconShare = 0.38f;
+
         /// <summary>Applies colours, outline, corner style and ring colour from a theme.</summary>
         public void ApplyTheme(Theme.BoardTheme theme, Color tileColor, bool emphasized = false)
         {
@@ -93,7 +102,24 @@ namespace GazeBoard.Board
 
             if (_label == null) return;
             var labelRect = _label.rectTransform;
-            if (hasIcon)
+            if (hasIcon && SideBySide)
+            {
+                // Icon on the left, label on the right, meeting a little left of the middle.
+                var iconRect = _icon.rectTransform;
+                iconRect.anchorMin = new Vector2(0f, 0f);
+                iconRect.anchorMax = new Vector2(SideIconShare, 1f);
+                iconRect.offsetMin = iconRect.offsetMax = Vector2.zero;
+                _icon.margin = new Vector4(10f, 12f, 4f, 12f);
+                _icon.alignment = TextAlignmentOptions.Right;
+
+                labelRect.anchorMin = new Vector2(SideIconShare, 0f);
+                labelRect.anchorMax = new Vector2(1f, 1f);
+                labelRect.offsetMin = labelRect.offsetMax = Vector2.zero;
+                _label.margin = new Vector4(8f, 6f, 10f, 6f);
+                _label.alignment = TextAlignmentOptions.Left;
+                _label.textWrappingMode = TextWrappingModes.NoWrap; // one word: shrink, never break
+            }
+            else if (hasIcon)
             {
                 // Icon in the upper part, label in the lower part.
                 var iconRect = _icon.rectTransform;

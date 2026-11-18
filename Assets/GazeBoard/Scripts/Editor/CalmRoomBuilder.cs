@@ -88,6 +88,21 @@ namespace GazeBoard.EditorTools
             Debug.Log("[GazeBoard] Sea materials updated: the sea moves and waves break on the beach. No bake is needed; build and run to see it.");
         }
 
+        private const int RugTextureSize = 1024;
+
+        /// <summary>
+        /// Redraws the rug's texture in place. The rug material already points at that file, and
+        /// the baked lighting does not depend on the sharpness of its rings, so nothing is rebuilt.
+        /// </summary>
+        [MenuItem("GazeBoard/Calm Room/Update Rug (no bake)")]
+        private static void UpdateRug()
+        {
+            Directory.CreateDirectory(EnvFolder);
+            SaveTexture("CalmTexRug", RugTexture(RugTextureSize), repeat: false, compressed: false);
+            AssetDatabase.SaveAssets();
+            Debug.Log("[GazeBoard] Rug texture redrawn with smooth ring edges. No bake is needed.");
+        }
+
         [MenuItem("GazeBoard/Calm Room/Capture Preview Images")]
         private static void CapturePreviewMenu()
         {
@@ -110,6 +125,40 @@ namespace GazeBoard.EditorTools
             }
             CapturePreview(room);
             room.SetActive(wasActive);
+        }
+
+        /// <summary>
+        /// Writes the store's optional 360° preview: a 6000 x 3000 equirectangular JPG of the room
+        /// with the board, seen from the user's seat, kept under the store's 2.3 MB limit.
+        /// </summary>
+        [MenuItem("GazeBoard/Calm Room/Capture 360 Store Preview")]
+        private static void Capture360Menu()
+        {
+            GameObject room = FindRoom();
+            if (room == null)
+            {
+                EditorUtility.DisplayDialog("GazeBoard", "No calm room in the scene. Run Build and Bake Lighting first.", "OK");
+                return;
+            }
+            // The board's tiles and labels are created when the app starts, so only Play mode shows them.
+            if (!Application.isPlaying && !EditorUtility.DisplayDialog("GazeBoard",
+                    "The board's tiles are only built while the app runs, so a capture now shows an empty board.\n\n" +
+                    "Press Play, open the category you want to show, then run this command again.",
+                    "Capture anyway", "Cancel"))
+            {
+                return;
+            }
+
+            bool wasActive = room.activeSelf;
+            room.SetActive(true);
+            try
+            {
+                Capture360(room);
+            }
+            finally
+            {
+                room.SetActive(wasActive);
+            }
         }
 
         private static void OnBakeCompleted()
@@ -181,7 +230,7 @@ namespace GazeBoard.EditorTools
             Texture2D plaster = SaveTexture("CalmTexPlaster", NoiseTexture(256, 0.035f, 18f), repeat: true);
             Texture2D grain = SaveTexture("CalmTexGrain", GrainTexture(256), repeat: true);
             Texture2D weave = SaveTexture("CalmTexWeave", WeaveTexture(128), repeat: true);
-            Texture2D rug = SaveTexture("CalmTexRug", RugTexture(512), repeat: false);
+            Texture2D rug = SaveTexture("CalmTexRug", RugTexture(RugTextureSize), repeat: false, compressed: false);
 
             var p = new Palette
             {
@@ -897,6 +946,169 @@ namespace GazeBoard.EditorTools
             Debug.Log($"[GazeBoard] Room preview images written to {Path.GetFullPath(PreviewFolder)}.");
         }
 
+        /// <summary>
+        /// Renders the six 90° views around the user's seat and projects them into one
+        /// equirectangular image whose centre is straight ahead (room +Z, where the board is).
+        /// </summary>
+        private static void Capture360(GameObject room)
+        {
+            const int FaceSize = 2048, Width = 6000, Height = 3000;
+            const int MaxBytes = 2_300_000; // the store's limit is 2.3 MB
+            Directory.CreateDirectory(PreviewFolder);
+            string path = Path.Combine(PreviewFolder, "360_store_preview.jpg");
+
+            var cameraObject = new GameObject("Room360Camera") { hideFlags = HideFlags.HideAndDontSave };
+            Camera camera = cameraObject.AddComponent<Camera>();
+            camera.clearFlags = CameraClearFlags.Skybox;
+            camera.nearClipPlane = 0.05f;
+            camera.farClipPlane = 600f;
+            camera.fieldOfView = 90f;
+            camera.enabled = false;
+
+            var target = new RenderTexture(FaceSize, FaceSize, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB) { antiAliasing = 4 };
+            var face = new Texture2D(FaceSize, FaceSize, TextureFormat.RGBA32, false);
+            var output = new Texture2D(Width, Height, TextureFormat.RGBA32, false);
+            Material previousSkybox = RenderSettings.skybox;
+            RenderSettings.skybox = CreateSkybox();
+
+            // Right, left, up, down, front, back.
+            var rotations = new[]
+            {
+                Quaternion.LookRotation(Vector3.right, Vector3.up),
+                Quaternion.LookRotation(Vector3.left, Vector3.up),
+                Quaternion.LookRotation(Vector3.up, Vector3.back),
+                Quaternion.LookRotation(Vector3.down, Vector3.forward),
+                Quaternion.LookRotation(Vector3.forward, Vector3.up),
+                Quaternion.LookRotation(Vector3.back, Vector3.up),
+            };
+            var faces = new Color32[6][];
+            Vector3 eye = room.transform.TransformPoint(new Vector3(0f, 1.2f, 0f));
+            Quaternion facing = room.transform.rotation;
+
+            // While the app runs the board follows the head, so look from the head towards the board.
+            if (Application.isPlaying && Board.BoardPlacement.Instance != null)
+            {
+                Transform head = Camera.main != null ? Camera.main.transform : null;
+                if (head != null && head.localPosition.sqrMagnitude > 0.0001f) eye = head.position; // tracked
+                Vector3 toBoard = Vector3.ProjectOnPlane(Board.BoardPlacement.Instance.transform.position - eye, Vector3.up);
+                if (toBoard.sqrMagnitude > 0.0001f) facing = Quaternion.LookRotation(toBoard, Vector3.up);
+            }
+
+            // Hands, controllers and anything else on the camera rig do not belong in the picture.
+            var hidden = new List<Renderer>();
+            var rig = Object.FindFirstObjectByType<OVRCameraRig>();
+            if (rig != null)
+            {
+                foreach (Renderer renderer in rig.GetComponentsInChildren<Renderer>())
+                {
+                    if (!renderer.enabled) continue;
+                    renderer.enabled = false;
+                    hidden.Add(renderer);
+                }
+            }
+
+            try
+            {
+                for (int i = 0; i < 6; i++)
+                {
+                    EditorUtility.DisplayProgressBar("GazeBoard", "Rendering the 360° preview…", i / 8f);
+                    camera.transform.SetPositionAndRotation(eye, facing * rotations[i]);
+                    camera.targetTexture = target;
+
+                    var request = new RenderPipeline.StandardRequest { destination = target };
+                    if (RenderPipeline.SupportsRenderRequest(camera, request)) RenderPipeline.SubmitRenderRequest(camera, request);
+                    else camera.Render();
+
+                    RenderTexture.active = target;
+                    face.ReadPixels(new Rect(0, 0, FaceSize, FaceSize), 0, 0);
+                    RenderTexture.active = null;
+                    faces[i] = face.GetPixels32();
+                }
+
+                EditorUtility.DisplayProgressBar("GazeBoard", "Projecting the 360° preview…", 6 / 8f);
+                var result = new Color32[Width * Height];
+                var sinLon = new float[Width];
+                var cosLon = new float[Width];
+                for (int x = 0; x < Width; x++)
+                {
+                    float lon = ((x + 0.5f) / Width * 2f - 1f) * Mathf.PI;
+                    sinLon[x] = Mathf.Sin(lon);
+                    cosLon[x] = Mathf.Cos(lon);
+                }
+                var right = new Vector3[6];
+                var up = new Vector3[6];
+                var forward = new Vector3[6];
+                for (int i = 0; i < 6; i++)
+                {
+                    right[i] = rotations[i] * Vector3.right;
+                    up[i] = rotations[i] * Vector3.up;
+                    forward[i] = rotations[i] * Vector3.forward;
+                }
+
+                int last = FaceSize - 1;
+                for (int y = 0; y < Height; y++) // row 0 is the bottom of the image
+                {
+                    float lat = ((y + 0.5f) / Height - 0.5f) * Mathf.PI;
+                    float sinLat = Mathf.Sin(lat), cosLat = Mathf.Cos(lat);
+                    for (int x = 0; x < Width; x++)
+                    {
+                        float dx = sinLon[x] * cosLat, dy = sinLat, dz = cosLon[x] * cosLat;
+                        float ax = Mathf.Abs(dx), ay = Mathf.Abs(dy), az = Mathf.Abs(dz);
+                        int f = ax >= ay && ax >= az ? (dx > 0f ? 0 : 1)
+                            : ay >= az ? (dy > 0f ? 2 : 3)
+                            : (dz > 0f ? 4 : 5);
+
+                        Vector3 r = right[f], u = up[f], w = forward[f];
+                        float depth = dx * w.x + dy * w.y + dz * w.z;
+                        float fx = ((dx * r.x + dy * r.y + dz * r.z) / depth * 0.5f + 0.5f) * FaceSize - 0.5f;
+                        float fy = ((dx * u.x + dy * u.y + dz * u.z) / depth * 0.5f + 0.5f) * FaceSize - 0.5f;
+
+                        int x0 = Mathf.Clamp(Mathf.FloorToInt(fx), 0, last), x1 = Mathf.Min(x0 + 1, last);
+                        int y0 = Mathf.Clamp(Mathf.FloorToInt(fy), 0, last), y1 = Mathf.Min(y0 + 1, last);
+                        float tx = Mathf.Clamp01(fx - x0), ty = Mathf.Clamp01(fy - y0);
+
+                        Color32[] source = faces[f];
+                        Color32 a = source[y0 * FaceSize + x0], b = source[y0 * FaceSize + x1];
+                        Color32 c = source[y1 * FaceSize + x0], d = source[y1 * FaceSize + x1];
+                        float wa = (1f - tx) * (1f - ty), wb = tx * (1f - ty), wc = (1f - tx) * ty, wd = tx * ty;
+                        result[y * Width + x] = new Color32(
+                            (byte)(a.r * wa + b.r * wb + c.r * wc + d.r * wd + 0.5f),
+                            (byte)(a.g * wa + b.g * wb + c.g * wc + d.g * wd + 0.5f),
+                            (byte)(a.b * wa + b.b * wb + c.b * wc + d.b * wd + 0.5f),
+                            255);
+                    }
+                }
+                output.SetPixels32(result);
+
+                // The store wants at least 80% quality and at most 2.3 MB: take the best that fits.
+                EditorUtility.DisplayProgressBar("GazeBoard", "Saving the 360° preview…", 7 / 8f);
+                byte[] jpg = null;
+                int quality = 95;
+                for (; quality >= 80; quality -= 5)
+                {
+                    jpg = output.EncodeToJPG(quality);
+                    if (jpg.Length <= MaxBytes) break;
+                }
+                File.WriteAllBytes(path, jpg);
+                if (jpg.Length <= MaxBytes)
+                    Debug.Log($"[GazeBoard] 360° store preview written to {Path.GetFullPath(path)} ({jpg.Length / 1024} KB, JPG quality {quality}).");
+                else
+                    Debug.LogWarning($"[GazeBoard] 360° store preview written to {Path.GetFullPath(path)}, but it is {jpg.Length / 1024} KB at the lowest allowed quality (80), over the store's 2.3 MB limit.");
+            }
+            finally
+            {
+                EditorUtility.ClearProgressBar();
+                foreach (Renderer renderer in hidden) if (renderer != null) renderer.enabled = true;
+                RenderSettings.skybox = previousSkybox;
+                camera.targetTexture = null;
+                Object.DestroyImmediate(cameraObject);
+                Object.DestroyImmediate(face);
+                Object.DestroyImmediate(output);
+                target.Release();
+                Object.DestroyImmediate(target);
+            }
+        }
+
         // ---- geometry collection ----
 
         private sealed class Group
@@ -1173,7 +1385,7 @@ namespace GazeBoard.EditorTools
             return mat;
         }
 
-        private static Texture2D SaveTexture(string name, Texture2D source, bool repeat, bool linear = false)
+        private static Texture2D SaveTexture(string name, Texture2D source, bool repeat, bool linear = false, bool compressed = true)
         {
             string path = $"{EnvFolder}/{name}.png";
             File.WriteAllBytes(path, source.EncodeToPNG());
@@ -1188,6 +1400,8 @@ namespace GazeBoard.EditorTools
             importer.filterMode = FilterMode.Trilinear;
             importer.anisoLevel = 8;
             importer.maxTextureSize = 1024;
+            // Block compression nicks a sharp coloured edge; a texture that is all edges goes without.
+            importer.textureCompression = compressed ? TextureImporterCompression.Compressed : TextureImporterCompression.Uncompressed;
             importer.SaveAndReimport();
             return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
@@ -1278,17 +1492,23 @@ namespace GazeBoard.EditorTools
             var cream = new Color(0.87f, 0.83f, 0.75f);
             var teal = new Color(0.44f, 0.57f, 0.57f);
             var clay = new Color(0.80f, 0.56f, 0.44f);
+            // Ring edges are blended over about three pixels: a hard edge shows as stair steps on the floor.
+            float soft = 3f / size;
+            float Edge(float at, float radius) => Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(at - soft, at + soft, radius));
+            float Ring(float radius, float from, float to) => Edge(from, radius) * (1f - Edge(to, radius));
             return NewTexture(size, size, (x, y) =>
             {
                 float dx = (x + 0.5f) / size * 2f - 1f, dy = (y + 0.5f) / size * 2f - 1f;
                 float r = Mathf.Sqrt(dx * dx + dy * dy);
                 Color c = cream;
-                if (r > 0.90f) c = teal;
-                else if (r > 0.82f && r < 0.86f) c = clay;
-                else if (r > 0.56f && r < 0.64f) c = teal;
-                else if (r > 0.30f && r < 0.33f) c = clay;
-                else if (r < 0.12f) c = clay;
-                float pile = 0.93f + 0.10f * Mathf.PerlinNoise(x * 0.35f, y * 0.35f);
+                c = Color.Lerp(c, clay, Ring(r, -1f, 0.12f));
+                c = Color.Lerp(c, clay, Ring(r, 0.30f, 0.33f));
+                c = Color.Lerp(c, teal, Ring(r, 0.56f, 0.64f));
+                c = Color.Lerp(c, clay, Ring(r, 0.82f, 0.86f));
+                c = Color.Lerp(c, teal, Ring(r, 0.90f, 3f));
+                // The pile's grain keeps its size on the rug whatever the texture size.
+                float grain = 0.35f * 512f / size;
+                float pile = 0.93f + 0.10f * Mathf.PerlinNoise(x * grain, y * grain);
                 return c * pile;
             });
         }

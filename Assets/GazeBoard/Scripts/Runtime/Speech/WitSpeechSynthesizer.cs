@@ -60,8 +60,9 @@ namespace GazeBoard.Speech
 
         /// <summary>
         /// True when a clip for this text is on the device, either baked into the app or kept from
-        /// an earlier time it was spoken online. Looks for the actual file, at the preset's speed,
-        /// which is the speed used with no connection.
+        /// an earlier time it was spoken online. Looks for the actual file: first at the user's
+        /// own voice speed (a sentence spoken online at that speed was kept at that speed), then
+        /// at the preset's speed, which is the speed of every baked clip.
         /// </summary>
         public bool HasOfflineClip(string text)
         {
@@ -74,6 +75,7 @@ namespace GazeBoard.Speech
                 var preset = string.IsNullOrEmpty(_speaker.VoiceID) ? null : service.GetPresetVoiceSettings(_speaker.VoiceID);
                 Meta.WitAi.TTS.Data.TTSVoiceSettings voice = preset != null ? preset : _speaker.customWitVoiceSettings;
 
+                if (HasClipAtOwnSpeed(text)) return true;
                 if (ClipExists(service, text, voice, PersistentCache)) return true;
                 return !PreloadInstaller.UsesCopiedClips && ClipExists(service, text, voice, PreloadCache);
             }
@@ -82,6 +84,24 @@ namespace GazeBoard.Speech
                 // Unknown is not "missing": let the phrase try to play rather than block it.
                 Debug.LogWarning($"{Tag} Could not check for an offline clip: {e.Message}");
                 return true;
+            }
+        }
+
+        /// <summary>
+        /// True when the user has chosen a voice speed other than the preset's and a clip of this
+        /// text at that speed is on the device. Such clips come only from speaking online, and
+        /// are kept in the persistent folder.
+        /// </summary>
+        private bool HasClipAtOwnSpeed(string text)
+        {
+            if (_override == null) return false;
+            try
+            {
+                return ClipExists(_speaker.TTSService, text, _override, PersistentCache);
+            }
+            catch (Exception)
+            {
+                return false; // unknown: fall back to the preset speed, which is the safe path
             }
         }
 
@@ -108,9 +128,10 @@ namespace GazeBoard.Speech
             var cache = userText || PreloadInstaller.UsesCopiedClips ? PersistentCache : PreloadCache;
 
             // The baked clips were made at the preset's speed. Offline, a speed override would make
-            // every clip id miss and the phrase would fail silently, so speak at the preset speed.
+            // their clip ids miss and the phrase would fail silently, so speak at the preset speed,
+            // unless this very text was kept at the user's speed, in which case play that.
             bool offline = Application.internetReachability == NetworkReachability.NotReachable;
-            bool dropOverride = offline && _override != null;
+            bool dropOverride = offline && _override != null && !HasClipAtOwnSpeed(text);
             if (dropOverride) _speaker.ClearVoiceOverride();
 
             Debug.Log($"{Tag} Wit speak request: {LogText.Of(text)} (interrupt={interrupt}, userText={userText}" +

@@ -46,6 +46,9 @@ namespace GazeBoard.Speech
         // The listener hears why nothing came, and can read the sentence on the board instead.
         public const string CannotSpeakNow = "No internet. I cannot say that right now.";
 
+        // Said when there is a connection but the voice service did not produce the sentence.
+        public const string CannotSpeakFailed = "I cannot say that right now.";
+
         // Speak-on-select setting.
         public const string SpeakTilesOn = "Tiles speak when chosen";
         public const string SpeakTilesOff = "Tiles are silent. Choose Speak to say the sentence.";
@@ -89,6 +92,7 @@ namespace GazeBoard.Speech
             yield return PhoneSendFailed;
             yield return PhoneNewCode;
             yield return CannotSpeakNow;
+            yield return CannotSpeakFailed;
             yield return SpeakTilesOn;
             yield return SpeakTilesOff;
             yield return BoardRecenterPrompt;
